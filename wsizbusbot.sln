@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29215.179
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "wsizbusbot", "wsizbusbot\wsizbusbot.csproj", "{14D26A59-000C-4825-A91E-7FD6AD8E41AE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{14D26A59-000C-4825-A91E-7FD6AD8E41AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{14D26A59-000C-4825-A91E-7FD6AD8E41AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{14D26A59-000C-4825-A91E-7FD6AD8E41AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{14D26A59-000C-4825-A91E-7FD6AD8E41AE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {36D959B6-8B6A-4227-BB01-CD8D5D2CDF47}
+	EndGlobalSection
+EndGlobal
