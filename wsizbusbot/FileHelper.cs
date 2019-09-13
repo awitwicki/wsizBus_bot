@@ -60,8 +60,10 @@ namespace wsizbusbot
             }
             catch (Exception ex)
             {
-                //Log exception here
-                Console.WriteLine(ex.ToString());
+                if (ex is FileNotFoundException)
+                    Console.WriteLine($"File {fileName} not found");
+                else
+                    Console.WriteLine(ex.ToString());
             }
 
             return objectOut;

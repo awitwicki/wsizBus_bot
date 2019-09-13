@@ -39,12 +39,16 @@ namespace wsizbusbot
 
             //Load blocklist
             var file_blocklist = FileHelper.DeSerializeObject<List<long>>(Config.BlocklistFilePath);
-            if (file_blocklist != null)
+            if (file_blocklist == null)
+                FileHelper.SerializeObject<List<long>>(new List<long>(), Config.BlocklistFilePath);
+            else
                 BlockList = file_blocklist;
 
             //Load Users
             var file_users = FileHelper.DeSerializeObject<List<User>>(Config.UsersFilePath);
-            if (file_users != null)
+            if (file_users == null)
+                FileHelper.SerializeObject<List<User>>(new List<User>(), Config.UsersFilePath);
+            else
                 Users = file_users;
 
             var me = Bot.GetMeAsync().Result;
@@ -397,16 +401,18 @@ namespace wsizbusbot
                             continue;
 
                         //is it new day (with date)?
-                        var _isDate = isDate(cell.Text);
-                        if (_isDate != null)
+                        if (cell.Address[0] == 'A' && cell.Text != "")
                         {
-                            Console.WriteLine("New day added");
-                            schedule.CreateDay(_isDate.Value);
+                            var _isDate = isDate(cell.Text);
+                            if (_isDate != null)
+                            {
+                                schedule.CreateDay(_isDate.Value);
+                                Console.WriteLine($"Day {cell.Text} added");
+                            }
                         }
                         else
                         {
                             schedule.AddStation(cell.Text, cell.Address);
-
                         }
                     }
                 }
