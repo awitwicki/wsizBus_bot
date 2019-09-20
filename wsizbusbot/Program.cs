@@ -140,10 +140,13 @@ namespace wsizbusbot
                                 await Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
                                 return;
                             }
+
+                            int i = 0;
                             string users = Users.Count()>0 ? "Users list:\n" : "Users list is empty";
                             foreach (var user in Users)
                             {
-                                users += $"{user.Name} `{user.Id}` @{user.UserName}\n";
+                                i++;
+                                users += $"{i}  {user.Name} `{user.Id}` @{(user.UserName != null ? user.UserName.Replace("_","\\_") : "hidden")}\n";
                             }
                             await Bot.SendTextMessageAsync(message.Chat.Id, users, ParseMode.Markdown);
                             break;
@@ -158,9 +161,9 @@ namespace wsizbusbot
                             }
 
                             string users = BlockList.Count() == 0? "Ban list is empty":"";
-                            foreach (var user in BlockList)
+                            foreach (var user_id in BlockList)
                             {
-                                users += $"{user}\n";
+                                users += $"`{user_id}`\n";
                             }
                             await Bot.SendTextMessageAsync(message.Chat.Id, users, ParseMode.Markdown);
                             break;
@@ -182,8 +185,24 @@ namespace wsizbusbot
                                 {
                                     var usrId = msgs[1];
                                     var id = Convert.ToInt64(usrId);
-                                    if (!BlockList.Contains(id))
-                                        BlockList.Add(id);
+                                    if (id > 10000)
+                                    {
+                                        if (!BlockList.Contains(id))
+                                            BlockList.Add(id);
+                                    }
+                                    else
+                                    {
+                                        try
+                                        {
+                                            id = Users[(int)id].Id;
+                                            if (!BlockList.Contains(id))
+                                                BlockList.Add(id);
+                                        }
+                                        catch
+                                        {
+
+                                        }
+                                    }
 
                                     //save to file
                                     FileHelper.SerializeObject<List<long>>(BlockList, Config.BlocklistFilePath);
