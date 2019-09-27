@@ -24,18 +24,27 @@ namespace wsizbusbot
         public static bool stopMode = false;
         static void Main(string[] args)
         {
+            var tryCreateDirectory = Directory.CreateDirectory(Config.DataPath);
             var files = Directory.GetFiles(Config.DataPath, "*.xlsx");
             if (files.Count() == 0)
                 stopMode = true;
 
             var filtered_files = files.Select(x => Convert.ToInt32(Path.GetFileNameWithoutExtension(x).Remove(6))).ToList();
-            var lastMonth = filtered_files.Max().ToString();
-            string fileName = files.Where(f => f.Contains(lastMonth)).First();
+            if (filtered_files.Count>0)
+            {
+                var lastMonth = filtered_files.Max().ToString();
+                string fileName = files.Where(f => f.Contains(lastMonth)).First();
 
-            if (fileName == null)
+                if (fileName == null)
+                    stopMode = true;
+
+                GetDataTableFromExcel(fileName);
+            }
+            else
+            {
                 stopMode = true;
-            
-            GetDataTableFromExcel(fileName);
+            }
+           
 
             //Load blocklist
             var file_blocklist = FileHelper.DeSerializeObject<List<long>>(Config.BlocklistFilePath);
@@ -59,6 +68,9 @@ namespace wsizbusbot
 
             Bot.StartReceiving(Array.Empty<UpdateType>());
             Bot.SendTextMessageAsync(Config.AdminId, $"WsizBusBot is started\nBot version `{Config.BotVersion}.`", ParseMode.Markdown);
+            if(stopMode)
+                Bot.SendTextMessageAsync(Config.AdminId, "Error with file parsing", ParseMode.Markdown);
+
             Console.WriteLine($"Start listening for @{me.Username}");
 
             while (true) { }
@@ -66,7 +78,21 @@ namespace wsizbusbot
 
             Bot.StopReceiving();
         }
-
+        
+        public static async Task<bool> TrySendMessage(long chatId, string messageText, ParseMode parseMode)
+        {
+            try
+            {
+                await Bot.SendTextMessageAsync(chatId, messageText, parseMode);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                return false;
+            }
+            
+        }
         private static async void BotOnMessageReceived(object sender, MessageEventArgs messageEventArgs)
         {
             var message = messageEventArgs.Message;
@@ -102,6 +128,28 @@ namespace wsizbusbot
             if (message.Text[0] == '/')
                 switch (message.Text.Split(' ').First())
                 {
+                    case "/help":
+                        {
+                            //Authorize
+                            if (access != Acceess.Admin)
+                            {
+                                await Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
+                                return;
+                            }
+
+                            string help_string = $"*Admin functions*:\n" +
+                                $"/me - print your `id`\n" +
+                                $"/help - help\n" +
+                                $"/users - users lisn\n" +
+                                $"/ban\\_list - banned users list\n" +
+                                $"/add\\_ban [user id or user id] - banned users list\n" +
+                                $"/send\\_all [message text] - send text to all users\n" +
+                                $"/send\\_test [message text] - send text to you\n";
+
+                            //get userId
+                            await Bot.SendTextMessageAsync(message.Chat.Id, help_string, ParseMode.Markdown);
+                            break;
+                        }
                     case "/start":
                         {
                             string messageText =
@@ -215,6 +263,60 @@ namespace wsizbusbot
                             }
                             break;
                         }
+                    case "/send_all":
+                        {
+                            //Authorize
+                            if (access != Acceess.Admin)
+                            {
+                                await Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
+                                return;
+                            }
+
+                            //get userId
+                            var msgs = message.Text.Split(' ');
+                            if (msgs.Count() > 1)
+                            {
+                                try
+                                {
+                                    var text = message.Text.Replace("/send_all ","");
+
+                                    foreach (var user in Users)
+                                        await TrySendMessage(user.Id, text, ParseMode.Markdown);
+                                    
+                                    await Bot.SendTextMessageAsync(message.Chat.Id, "Success", ParseMode.Markdown);
+                                }
+                                catch
+                                {
+                                    await Bot.SendTextMessageAsync(message.Chat.Id, "error", ParseMode.Markdown);
+                                }
+                            }
+                            break;
+                        }
+                    case "/send_test":
+                        {
+                            //Authorize
+                            if (access != Acceess.Admin)
+                            {
+                                await Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
+                                return;
+                            }
+
+                            //get userId
+                            var msgs = message.Text.Split(' ');
+                            if (msgs.Count() > 1)
+                            {
+                                try
+                                {
+                                    var text = message.Text.Replace("/send_test ", "");
+                                    await TrySendMessage(message.Chat.Id, text, ParseMode.Markdown);
+                                }
+                                catch
+                                {
+                                    await Bot.SendTextMessageAsync(message.Chat.Id, "error", ParseMode.Markdown);
+                                }
+                            }
+                            break;
+                        }
                 }
         }
         private static async void BotOnCallbackQueryReceived(object sender, CallbackQueryEventArgs callbackQueryEventArgs)
@@ -251,7 +353,7 @@ namespace wsizbusbot
 
 
                                 var inlineKeyboard = new InlineKeyboardMarkup(calendarKeyboard);
-                                await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, $"Обери дату ({Enum.GetName(typeof(MonthNamesUa), schedule.Days[0].DayDateTime.Month)})", ParseMode.Markdown, replyMarkup: inlineKeyboard);
+                                await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, $"Обери дату ({Enum.GetName(typeof(MonthNamesUa), schedule.Days[0].DayDateTime.Month-1)})", ParseMode.Markdown, replyMarkup: inlineKeyboard);
                             }
                             catch (Exception ex)
                             {
@@ -299,7 +401,7 @@ namespace wsizbusbot
 
 
                                 var inlineKeyboard = new InlineKeyboardMarkup(calendarKeyboard);
-                                await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, $"Обери дату ({Enum.GetName(typeof(MonthNamesUa), schedule.Days[0].DayDateTime.Month)})", ParseMode.Markdown, replyMarkup: inlineKeyboard);
+                                await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, $"Обери дату ({Enum.GetName(typeof(MonthNamesUa), schedule.Days[0].DayDateTime.Month-1)})", ParseMode.Markdown, replyMarkup: inlineKeyboard);
                             }
                             catch (Exception ex)
                             {
@@ -477,7 +579,7 @@ namespace wsizbusbot
 
             var grouped = filtered.GroupBy(x => x.RouteId).ToList();
 
-            var monthName = Enum.GetName(typeof(MonthNamesUa), schedule.Days[0].DayDateTime.Month);
+            var monthName = Enum.GetName(typeof(MonthNamesUa), schedule.Days[0].DayDateTime.Month-1);
 
             string harmonogram = $"*{dayNumber} {monthName}* розклад бусiв\n*до {directionName}*\n\n";
 
