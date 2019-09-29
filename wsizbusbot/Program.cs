@@ -69,20 +69,26 @@ namespace wsizbusbot
                     stopMode = true;
 
                 var filtered_files = files.Select(x => Convert.ToInt32(Path.GetFileNameWithoutExtension(x).Remove(6))).ToList();
-                if (filtered_files.Count > 0)
+                foreach(var filename in files)
                 {
-                    var lastMonth = filtered_files.Max().ToString();
-                    string fileName = files.Where(f => f.Contains(lastMonth)).First();
-
-                    if (fileName == null)
-                        stopMode = true;
-
-                    GetDataTableFromExcel(fileName);
+                    GetDataTableFromExcel(filename);
+                    Console.WriteLine($"{filename} parsed");
                 }
-                else
-                {
-                    return false;
-                }
+
+                //if (filtered_files.Count > 0)
+                //{
+                //    var lastMonth = filtered_files.Max().ToString();
+                //    string fileName = files.Where(f => f.Contains(lastMonth)).First();
+
+                //    if (fileName == null)
+                //        stopMode = true;
+
+                //    GetDataTableFromExcel(fileName);
+                //
+                //else
+                //{
+                //    return false;
+                //}
                 return true;
             }
             catch
@@ -354,118 +360,170 @@ namespace wsizbusbot
         private static async void BotOnCallbackQueryReceived(object sender, CallbackQueryEventArgs callbackQueryEventArgs)
         {
             var callbackQuery = callbackQueryEventArgs.CallbackQuery;
-
             var commands = callbackQuery.Data.Split('-');
 
             if (commands.Count() == 1)
-                switch (callbackQuery.Data)
+            {
+                try
                 {
-                    case "CTIR":
-                        {
-                            try
-                            {
-                                //send today
-                                var today = schedule.Days.Where(d => d.DayDateTime.Day == 6).FirstOrDefault();
-                                var filtered = today.Stations.Where(s => s.Destination == Way.ToCTIR).ToList();
+                    Way direction = commands[0] == "CTIR" ? Way.ToCTIR : Way.ToRzeszow;
+                    var directionString = commands[0];
 
-                                var calendarKeyboard = new List<List<InlineKeyboardButton>>();
-                                calendarKeyboard.Add(new List<InlineKeyboardButton>
+                    var monthName = Enum.GetName(typeof(MonthNamesUa), DateTime.UtcNow.Month - 1);
+                    var actualSchedule = schedule.Days.Where(d => d.DayDateTime.Month == DateTime.UtcNow.Month).ToList();
+
+                    var calendarKeyboard = new List<List<InlineKeyboardButton>>();
+
+                    //today-tomorrow
+                    if (actualSchedule.Count > 0)
+                    {
+                        calendarKeyboard.Add(new List<InlineKeyboardButton>
                                 {
-                                     InlineKeyboardButton.WithCallbackData("Сьогодні", "CTIR-today"),
-                                     InlineKeyboardButton.WithCallbackData("Завтра", "CTIR-tomorrow")
+                                     InlineKeyboardButton.WithCallbackData("Інший місяць", $"{directionString}-MONTHS")
                                 });
-
-                                for (int i = 0; i < schedule.Days.Count; i++)
-                                {
-                                    if (i == 0 || i % 4 == 0)
-                                        calendarKeyboard.Add(new List<InlineKeyboardButton>());
-
-                                    calendarKeyboard.Last().Add(InlineKeyboardButton.WithCallbackData($"{schedule.Days[i].DayDateTime.Day}", $"CTIR-date-{schedule.Days[i].DayDateTime.ToShortDateString()}"));
-                                }
-
-
-                                var inlineKeyboard = new InlineKeyboardMarkup(calendarKeyboard);
-                                await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, $"Обери дату ({Enum.GetName(typeof(MonthNamesUa), schedule.Days[0].DayDateTime.Month-1)})", ParseMode.Markdown, replyMarkup: inlineKeyboard);
-                            }
-                            catch (Exception ex)
-                            {
-                                if (callbackQuery.Message.From.Id == Config.AdminId)
-                                    await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, ex.Message.ToString(), ParseMode.Markdown);
-                                else
-                                {
-                                    await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, ex.Message.ToString(), ParseMode.Markdown);
-                                    await Bot.SendTextMessageAsync(Config.AdminId, callbackQuery.Message.Text);
-                                    await Bot.SendTextMessageAsync(Config.AdminId, ex.ToString());
-                                }
-                            }
-                            try
-                            {
-                                await Bot.DeleteMessageAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
-                            }
-                            catch
-                            {
-
-                            }
-                            break;
-                        }
-                    case "RZESZOW":
+                        calendarKeyboard.Add(new List<InlineKeyboardButton>
+                         {
+                            InlineKeyboardButton.WithCallbackData("Сьогодні", "${directionString}-today"),
+                            InlineKeyboardButton.WithCallbackData("Завтра", "${directionString}-tomorrow")
+                         });
+                    }
+                    else
+                    {
+                        var months = schedule.avaliableMonths;
+                        foreach (var month in months)
                         {
-                            try
-                            {
-                                //send today
-                                var today = schedule.Days.Where(d => d.DayDateTime.Day == 6).FirstOrDefault();
-                                var filtered = today.Stations.Where(s => s.Destination == Way.ToCTIR).ToList();
-
-                                var calendarKeyboard = new List<List<InlineKeyboardButton>>();
-                                calendarKeyboard.Add(new List<InlineKeyboardButton>
-                                {
-                                     InlineKeyboardButton.WithCallbackData("Сьогодні", "RZESZOW-today"),
-                                     InlineKeyboardButton.WithCallbackData("Завтра", "RZESZOW-tomorrow")
-                                });
-
-                                for (int i = 0; i < schedule.Days.Count; i++)
-                                {
-                                    if (i == 0 || i % 4 == 0)
-                                        calendarKeyboard.Add(new List<InlineKeyboardButton>());
-
-                                    calendarKeyboard.Last().Add(InlineKeyboardButton.WithCallbackData($"{schedule.Days[i].DayDateTime.Day}", $"RZESZOW-date-{schedule.Days[i].DayDateTime.ToShortDateString()}"));
-                                }
-
-
-                                var inlineKeyboard = new InlineKeyboardMarkup(calendarKeyboard);
-                                await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, $"Обери дату ({Enum.GetName(typeof(MonthNamesUa), schedule.Days[0].DayDateTime.Month-1)})", ParseMode.Markdown, replyMarkup: inlineKeyboard);
-                            }
-                            catch (Exception ex)
-                            {
-                                if (callbackQuery.Message.From.Id == Config.AdminId)
-                                    await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, ex.Message.ToString(), ParseMode.Markdown);
-                                else
-                                {
-                                    await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, ex.Message.ToString(), ParseMode.Markdown);
-                                    await Bot.SendTextMessageAsync(Config.AdminId, callbackQuery.Message.Text);
-                                    await Bot.SendTextMessageAsync(Config.AdminId, ex.ToString());
-                                }
-                            }
-                            try
-                            {
-                                await Bot.DeleteMessageAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
-                            }
-                            catch
-                            { }
-                            break;
+                            calendarKeyboard.Add(new List<InlineKeyboardButton>() { InlineKeyboardButton.WithCallbackData($"{month}", $"{directionString}-month-{(int)month + 1}") });
                         }
+                    }
+
+                    for (int i = 0; i < actualSchedule.Count; i++)
+                    {
+                        if (i == 0 || i % 4 == 0)
+                            calendarKeyboard.Add(new List<InlineKeyboardButton>());
+
+                        calendarKeyboard.Last().Add(InlineKeyboardButton.WithCallbackData($"{actualSchedule[i].DayDateTime.Day}", $"CTIR-date-{actualSchedule[i].DayDateTime.ToShortDateString()}"));
+                    }
+
+                    var inlineKeyboard = new InlineKeyboardMarkup(calendarKeyboard);
+                    var keyboardText = (actualSchedule.Count > 0) ? $"Обери дату ({Enum.GetName(typeof(MonthNamesUa), DateTime.UtcNow.Month - 1)})" : $"Нема розкладу на цей місяць ({Enum.GetName(typeof(MonthNamesUa), DateTime.UtcNow.Month - 1)}), обери інший.";
+                    await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, keyboardText, ParseMode.Markdown, replyMarkup: inlineKeyboard);
+
                 }
+                catch (Exception ex)
+                {
+                    if (callbackQuery.Message.From.Id == Config.AdminId)
+                        await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, ex.Message.ToString(), ParseMode.Markdown);
+                    else
+                    {
+                        await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, ex.Message.ToString(), ParseMode.Markdown);
+                        await Bot.SendTextMessageAsync(Config.AdminId, callbackQuery.Message.Text);
+                        await Bot.SendTextMessageAsync(Config.AdminId, ex.ToString());
+                    }
+                }
+                try
+                {
+                    await Bot.DeleteMessageAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
+                }
+                catch
+                {
+
+                }
+            }
             else if (commands.Count() > 1)
             {
                 try
                 {
                     Way direction = commands[0] == "CTIR" ? Way.ToCTIR : Way.ToRzeszow;
+                    var directionString = commands[0];
 
                     DateTime selectedDay = new DateTime();
 
                     //Parse date
                     switch (commands[1])
                     {
+                        case "MONTHS":
+                            {
+                                try
+                                {
+                                    var months = schedule.avaliableMonths;
+                                    var monthsKeyboard = new List<List<InlineKeyboardButton>>();
+
+                                    foreach (var month in months)
+                                    {
+                                        monthsKeyboard.Add(new List<InlineKeyboardButton>() { InlineKeyboardButton.WithCallbackData($"{month}", $"{directionString}-month-{(int)month + 1}") });
+                                    }
+
+                                    var monthsInlineKeyboard = new InlineKeyboardMarkup(monthsKeyboard);
+                                    await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, $"Обери місяць:", ParseMode.Markdown, replyMarkup: monthsInlineKeyboard);
+                                }
+                                catch (Exception ex)
+                                {
+                                    if (callbackQuery.Message.From.Id == Config.AdminId)
+                                        await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, ex.Message.ToString(), ParseMode.Markdown);
+                                    else
+                                    {
+                                        await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, "Сорі, щось пішло не так (*варунек*)", ParseMode.Markdown);
+                                        await Bot.SendTextMessageAsync(Config.AdminId, callbackQuery.Message.Text);
+                                        await Bot.SendTextMessageAsync(Config.AdminId, ex.ToString());
+                                    }
+                                }
+                                try
+                                {
+                                    await Bot.DeleteMessageAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
+                                }
+                                catch
+                                {
+
+                                }
+                                return;
+                            }
+                        case "month":
+                            {
+                                try
+                                {
+                                    var monthNumber = Convert.ToInt32(commands[2]);
+                                    var monthName = Enum.GetName(typeof(MonthNamesUa), monthNumber - 1);
+                                    var monthSchedule = schedule.Days.Where(d => d.DayDateTime.Month == monthNumber).ToList();
+
+                                    var calendarKeyboard = new List<List<InlineKeyboardButton>>();
+                                    calendarKeyboard.Add(new List<InlineKeyboardButton>
+                                    {
+                                     InlineKeyboardButton.WithCallbackData("Інший місяць", "directionString-MONTHS")
+                                    });
+
+                                    for (int i = 0; i < monthSchedule.Count; i++)
+                                    {
+                                        if (i == 0 || i % 4 == 0)
+                                            calendarKeyboard.Add(new List<InlineKeyboardButton>());
+
+                                        calendarKeyboard.Last().Add(InlineKeyboardButton.WithCallbackData($"{monthSchedule[i].DayDateTime.Day}", $"{directionString}-date-{monthSchedule[i].DayDateTime.ToShortDateString()}"));
+                                    }
+
+                                    var inlineKeyboard2 = new InlineKeyboardMarkup(calendarKeyboard);
+                                    await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, $"Обери дату ({monthName})", ParseMode.Markdown, replyMarkup: inlineKeyboard2);
+                                    return;
+                                }
+                                catch (Exception ex)
+                                {
+                                    if (callbackQuery.Message.From.Id == Config.AdminId)
+                                        await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, ex.Message.ToString(), ParseMode.Markdown);
+                                    else
+                                    {
+                                        await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, "Сорі, щось пішло не так (*варунек*)", ParseMode.Markdown);
+                                        await Bot.SendTextMessageAsync(Config.AdminId, callbackQuery.Message.Text);
+                                        await Bot.SendTextMessageAsync(Config.AdminId, ex.ToString());
+                                    }
+                                }
+                                try
+                                {
+                                    await Bot.DeleteMessageAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
+                                }
+                                catch
+                                {
+
+                                }
+                                return;
+                            }
                         case "date":
                             {
                                 selectedDay = DateTime.Parse(commands[2]);
