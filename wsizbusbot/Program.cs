@@ -5,6 +5,7 @@ using System.Data;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Args;
@@ -17,7 +18,6 @@ namespace wsizbusbot
     {
         private static readonly TelegramBotClient Bot = new TelegramBotClient(Config.TelegramAccessToken);
 
-
         public static List<User> Users = new List<User>();
         public static List<long> BlockList = new List<long>();
         public static Schedule schedule = new Schedule();
@@ -25,26 +25,8 @@ namespace wsizbusbot
         static void Main(string[] args)
         {
             var tryCreateDirectory = Directory.CreateDirectory(Config.DataPath);
-            var files = Directory.GetFiles(Config.DataPath, "*.xlsx");
-            if (files.Count() == 0)
-                stopMode = true;
 
-            var filtered_files = files.Select(x => Convert.ToInt32(Path.GetFileNameWithoutExtension(x).Remove(6))).ToList();
-            if (filtered_files.Count>0)
-            {
-                var lastMonth = filtered_files.Max().ToString();
-                string fileName = files.Where(f => f.Contains(lastMonth)).First();
-
-                if (fileName == null)
-                    stopMode = true;
-
-                GetDataTableFromExcel(fileName);
-            }
-            else
-            {
-                stopMode = true;
-            }
-           
+            stopMode = !ParseFiles().Result;
 
             //Load blocklist
             var file_blocklist = FileHelper.DeSerializeObject<List<long>>(Config.BlocklistFilePath);
@@ -78,6 +60,36 @@ namespace wsizbusbot
 
             Bot.StopReceiving();
         }
+        public static async Task<bool> ParseFiles()
+        {
+            try
+            {
+                var files = Directory.GetFiles(Config.DataPath, "*.xlsx");
+                if (files.Count() == 0)
+                    stopMode = true;
+
+                var filtered_files = files.Select(x => Convert.ToInt32(Path.GetFileNameWithoutExtension(x).Remove(6))).ToList();
+                if (filtered_files.Count > 0)
+                {
+                    var lastMonth = filtered_files.Max().ToString();
+                    string fileName = files.Where(f => f.Contains(lastMonth)).First();
+
+                    if (fileName == null)
+                        stopMode = true;
+
+                    GetDataTableFromExcel(fileName);
+                }
+                else
+                {
+                    return false;
+                }
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
         
         public static async Task<bool> TrySendMessage(long chatId, string messageText, ParseMode parseMode)
         {
@@ -97,7 +109,7 @@ namespace wsizbusbot
         {
             var message = messageEventArgs.Message;
 
-            if (message == null || message.Type != MessageType.Text) return;
+            if (message == null || (message.Type != MessageType.Text && message.Type != MessageType.Document)) return;
             if (message.Date.AddMinutes(1) < DateTime.UtcNow) return;
 
             await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
@@ -125,6 +137,26 @@ namespace wsizbusbot
                 await Bot.SendTextMessageAsync(Config.AdminId, $"New User {message.From.FirstName} {message.From.LastName}");
             }
 
+            //Download file
+            if (message.Type == MessageType.Document)
+            {
+                try
+                {
+                    var test = Bot.GetFileAsync(message.Document.FileId);
+                    var download_url = $"https://api.telegram.org/file/bot{Config.TelegramAccessToken}/" + test.Result.FilePath;
+                    using (WebClient client = new WebClient())
+                    {
+                        client.DownloadFile(new Uri(download_url), $"{Config.DataPath}{message.Document.FileName}");
+                    }
+                    var res = await TrySendMessage(Config.AdminId, "Success, reboot required", ParseMode.Default);
+                }
+                catch (Exception ex)
+                {
+                    var res = await TrySendMessage(Config.AdminId, ex.ToString(), ParseMode.Default);
+                }
+                return;
+            }
+
             if (message.Text[0] == '/')
                 switch (message.Text.Split(' ').First())
                 {
@@ -140,7 +172,7 @@ namespace wsizbusbot
                             string help_string = $"*Admin functions*:\n" +
                                 $"/me - print your `id`\n" +
                                 $"/help - help\n" +
-                                $"/users - users lisn\n" +
+                                $"/users - users list\n" +
                                 $"/ban\\_list - banned users list\n" +
                                 $"/add\\_ban [user id or user id] - banned users list\n" +
                                 $"/send\\_all [message text] - send text to all users\n" +
@@ -348,7 +380,7 @@ namespace wsizbusbot
                                     if (i == 0 || i % 4 == 0)
                                         calendarKeyboard.Add(new List<InlineKeyboardButton>());
 
-                                    calendarKeyboard.Last().Add(InlineKeyboardButton.WithCallbackData($"{schedule.Days[i].DayDateTime.Day}", $"CTIR-date-{schedule.Days[i].DayDateTime.Day}"));
+                                    calendarKeyboard.Last().Add(InlineKeyboardButton.WithCallbackData($"{schedule.Days[i].DayDateTime.Day}", $"CTIR-date-{schedule.Days[i].DayDateTime.ToShortDateString()}"));
                                 }
 
 
@@ -396,7 +428,7 @@ namespace wsizbusbot
                                     if (i == 0 || i % 4 == 0)
                                         calendarKeyboard.Add(new List<InlineKeyboardButton>());
 
-                                    calendarKeyboard.Last().Add(InlineKeyboardButton.WithCallbackData($"{schedule.Days[i].DayDateTime.Day}", $"RZESZOW-date-{schedule.Days[i].DayDateTime.Day}"));
+                                    calendarKeyboard.Last().Add(InlineKeyboardButton.WithCallbackData($"{schedule.Days[i].DayDateTime.Day}", $"RZESZOW-date-{schedule.Days[i].DayDateTime.ToShortDateString()}"));
                                 }
 
 
@@ -428,35 +460,37 @@ namespace wsizbusbot
                 try
                 {
                     Way direction = commands[0] == "CTIR" ? Way.ToCTIR : Way.ToRzeszow;
-                    int dayNumber = 0;
+
+                    DateTime selectedDay = new DateTime();
 
                     //Parse date
                     switch (commands[1])
                     {
                         case "date":
                             {
-                                dayNumber = Convert.ToInt32(commands[2]);
+                                selectedDay = DateTime.Parse(commands[2]);
                                 break;
                             }
                         case "today":
                             {
-                                dayNumber = DateTime.UtcNow.Day;
+                                selectedDay = DateTime.Today;
                                 break;
                             }
                         case "tomorrow":
                             {
+                                selectedDay = DateTime.Today.AddDays(1);
+
                                 if (DateTime.UtcNow.AddDays(1).Month != DateTime.UtcNow.Month)
                                 {
                                     await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, "Шо ти робиш, завтра інший місяць, іди спати О.о", ParseMode.Markdown);
                                     return;
                                 }
 
-                                dayNumber = DateTime.UtcNow.AddDays(1).Day;
                                 break;
                             }
                     }
 
-                    var text = GenerateSchedule(dayNumber, direction);
+                    var text = GenerateSchedule(selectedDay, direction);
                     await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, text, ParseMode.Markdown);
 
                     //Send menu to get back
@@ -563,13 +597,13 @@ namespace wsizbusbot
             if (userId == Config.AdminId) return Acceess.Admin;
             return Acceess.User;
         }
-        public static string GenerateSchedule(int dayNumber, Way direction)
+        public static string GenerateSchedule(DateTime date, Way direction)
         {
             string retString = "Сьогодні бус не їде, іди спати О.о";
 
             string directionName = direction == Way.ToCTIR ? "Кельнарової" : "Жешова";
 
-            var day = schedule.Days.Where(d => d.DayDateTime.Day == dayNumber).FirstOrDefault();
+            var day = schedule.Days.Where(d => d.DayDateTime.Day == date.Day && d.DayDateTime.Month == date.Month).FirstOrDefault();
             if (day == null)
                 return retString;
 
@@ -579,9 +613,9 @@ namespace wsizbusbot
 
             var grouped = filtered.GroupBy(x => x.RouteId).ToList();
 
-            var monthName = Enum.GetName(typeof(MonthNamesUa), schedule.Days[0].DayDateTime.Month-1);
+            var monthName = Enum.GetName(typeof(MonthNamesUa), date.Month-1);
 
-            string harmonogram = $"*{dayNumber} {monthName}* розклад бусiв\n*до {directionName}*\n\n";
+            string harmonogram = $"*{date.Day} {monthName}* розклад бусiв\n*до {directionName}*\n\n";
 
             var firstRoute = grouped[0].Where(g => g.Time != null).ToList();
 
