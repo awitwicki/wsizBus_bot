@@ -75,20 +75,6 @@ namespace wsizbusbot
                     Console.WriteLine($"{filename} parsed");
                 }
 
-                //if (filtered_files.Count > 0)
-                //{
-                //    var lastMonth = filtered_files.Max().ToString();
-                //    string fileName = files.Where(f => f.Contains(lastMonth)).First();
-
-                //    if (fileName == null)
-                //        stopMode = true;
-
-                //    GetDataTableFromExcel(fileName);
-                //
-                //else
-                //{
-                //    return false;
-                //}
                 return true;
             }
             catch
@@ -110,6 +96,19 @@ namespace wsizbusbot
                 return false;
             }
             
+        }
+        public static async Task<bool> TryDeleteMessage(long chatId, int messageId)
+        {
+            try
+            {
+                await Bot.DeleteMessageAsync(chatId, messageId);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                return false;
+            }
         }
         private static async void BotOnMessageReceived(object sender, MessageEventArgs messageEventArgs)
         {
@@ -467,14 +466,7 @@ namespace wsizbusbot
                                         await Bot.SendTextMessageAsync(Config.AdminId, ex.ToString());
                                     }
                                 }
-                                try
-                                {
-                                    await Bot.DeleteMessageAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
-                                }
-                                catch
-                                {
-
-                                }
+                                await TryDeleteMessage(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
                                 return;
                             }
                         case "month":
@@ -499,8 +491,9 @@ namespace wsizbusbot
                                         calendarKeyboard.Last().Add(InlineKeyboardButton.WithCallbackData($"{monthSchedule[i].DayDateTime.Day}", $"{directionString}-date-{monthSchedule[i].DayDateTime.ToShortDateString()}"));
                                     }
 
-                                    var inlineKeyboard2 = new InlineKeyboardMarkup(calendarKeyboard);
-                                    await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, $"Обери дату ({monthName})", ParseMode.Markdown, replyMarkup: inlineKeyboard2);
+                                    var calendarInlineKeyboard = new InlineKeyboardMarkup(calendarKeyboard);
+                                    await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, $"Обери дату ({monthName})", ParseMode.Markdown, replyMarkup: calendarInlineKeyboard);
+                                    await TryDeleteMessage(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId); 
                                     return;
                                 }
                                 catch (Exception ex)
@@ -514,14 +507,7 @@ namespace wsizbusbot
                                         await Bot.SendTextMessageAsync(Config.AdminId, ex.ToString());
                                     }
                                 }
-                                try
-                                {
-                                    await Bot.DeleteMessageAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
-                                }
-                                catch
-                                {
-
-                                }
+                                await TryDeleteMessage(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
                                 return;
                             }
                         case "date":
@@ -575,11 +561,7 @@ namespace wsizbusbot
                     }
                 }
 
-                try
-                {
-                    await Bot.DeleteMessageAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
-                }
-                catch { }
+                await TryDeleteMessage(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
             }
         }
         private static void GetDataTableFromExcel(string path, bool hasHeader = true)
@@ -646,8 +628,6 @@ namespace wsizbusbot
             {
                 return null;
             }
-
-            return null;
         }
         public static Acceess Authorize(long userId)
         {
