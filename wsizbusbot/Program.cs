@@ -653,7 +653,7 @@ namespace wsizbusbot
 
             var monthName = Enum.GetName(typeof(MonthNamesUa), date.Month-1);
 
-            string harmonogram = $"*{date.Day} {monthName}* розклад бусiв\n*до {directionName}*\n\n";
+            string harmonogram = $"*{Local.DaysOfWeekNamesUa[(int)date.DayOfWeek]} {date.Day} {monthName}* розклад бусiв\n*до {directionName}*\n\n";
 
             var firstRoute = grouped[0].Where(g => g.Time != null).ToList();
 
