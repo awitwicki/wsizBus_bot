@@ -231,7 +231,7 @@ namespace wsizbusbot
                             foreach (var user in Users)
                             {
                                 i++;
-                                users += $"{i}  {user.Name} `{user.Id}` @{(user.UserName != null ? user.UserName.Replace("_","\\_") : "hidden")}\n";
+                                users += $"{i}  {user.Name} `{user.Id}` @{(user.UserName != null ? user.UserName.Replace("_","\\_") : "hidden")}  {user.ActiveAt.ToShortDateString()}\n";
                             }
                             await Bot.SendTextMessageAsync(message.Chat.Id, users, ParseMode.Markdown);
                             break;
@@ -360,6 +360,16 @@ namespace wsizbusbot
         {
             var callbackQuery = callbackQueryEventArgs.CallbackQuery;
             var commands = callbackQuery.Data.Split('-');
+            
+            var usr = Users.Where(u => u.Id == callbackQuery.From.Id).FirstOrDefault();
+            if (usr != null)
+            {
+                //If new User then add
+                usr.ActiveAt = DateTime.Now;
+
+                //Save to file
+                FileHelper.SerializeObject<List<User>>(Users, Config.UsersFilePath);
+            }
 
             if (commands.Count() == 1)
             {
@@ -382,8 +392,8 @@ namespace wsizbusbot
                                 });
                         calendarKeyboard.Add(new List<InlineKeyboardButton>
                          {
-                            InlineKeyboardButton.WithCallbackData("Сьогодні", "${directionString}-today"),
-                            InlineKeyboardButton.WithCallbackData("Завтра", "${directionString}-tomorrow")
+                            InlineKeyboardButton.WithCallbackData("Сьогодні", $"{directionString}-today"),
+                            InlineKeyboardButton.WithCallbackData("Завтра", $"{directionString}-tomorrow")
                          });
                     }
                     else
@@ -400,7 +410,7 @@ namespace wsizbusbot
                         if (i == 0 || i % 4 == 0)
                             calendarKeyboard.Add(new List<InlineKeyboardButton>());
 
-                        calendarKeyboard.Last().Add(InlineKeyboardButton.WithCallbackData($"{actualSchedule[i].DayDateTime.Day}", $"CTIR-date-{actualSchedule[i].DayDateTime.ToShortDateString()}"));
+                        calendarKeyboard.Last().Add(InlineKeyboardButton.WithCallbackData($"{actualSchedule[i].DayDateTime.Day}", $"{directionString}-date-{actualSchedule[i].DayDateTime.ToShortDateString()}"));
                     }
 
                     var inlineKeyboard = new InlineKeyboardMarkup(calendarKeyboard);
@@ -480,7 +490,7 @@ namespace wsizbusbot
                                     var calendarKeyboard = new List<List<InlineKeyboardButton>>();
                                     calendarKeyboard.Add(new List<InlineKeyboardButton>
                                     {
-                                     InlineKeyboardButton.WithCallbackData("Інший місяць", "directionString-MONTHS")
+                                     InlineKeyboardButton.WithCallbackData("Інший місяць", $"{directionString}-MONTHS")
                                     });
 
                                     for (int i = 0; i < monthSchedule.Count; i++)
@@ -694,6 +704,7 @@ namespace wsizbusbot
     {
         public string Name { get; set; }
         public string UserName { get; set; }
+        public DateTime ActiveAt { get; set; }
         public long Id { get; set; }
     }
     public enum Acceess
@@ -703,4 +714,3 @@ namespace wsizbusbot
         Ban
     }
 }
-
