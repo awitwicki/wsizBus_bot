@@ -20,6 +20,7 @@ namespace wsizbusbot
 
         public static List<User> Users = new List<User>();
         public static List<long> BlockList = new List<long>();
+        public static List<Stats> Stats = new List<Stats>();
         public static Schedule schedule = new Schedule();
         public static bool stopMode = false;
         static void Main(string[] args)
@@ -41,6 +42,13 @@ namespace wsizbusbot
                 FileHelper.SerializeObject<List<User>>(new List<User>(), Config.UsersFilePath);
             else
                 Users = file_users;
+
+            //Load Stats
+            var file_stats = FileHelper.DeSerializeObject<List<Stats>>(Config.StatsFilePath);
+            if (file_stats == null)
+                FileHelper.SerializeObject<List<Stats>>(new List<Stats>(), Config.StatsFilePath);
+            else
+                Stats = file_stats;
 
             var me = Bot.GetMeAsync().Result;
             Console.Title = me.Username;
@@ -142,6 +150,25 @@ namespace wsizbusbot
                 await Bot.SendTextMessageAsync(Config.AdminId, $"New User {message.From.FirstName} {message.From.LastName}");
             }
 
+            //Store Stats
+            {
+                if (Stats.Where(s => s.Date == DateTime.UtcNow.Date).FirstOrDefault() == null)
+                {
+                    //Create new day
+                    Stats.Add(new Stats
+                    {
+                        ActiveClicks = 1,
+                        Date = DateTime.UtcNow.Date
+                    });
+                }
+                else
+                {
+                    Stats.Where(s => s.Date == DateTime.UtcNow.Date).First().ActiveClicks++;
+                }
+                //Save to file
+                FileHelper.SerializeObject<List<Stats>>(Stats, Config.StatsFilePath);
+            }
+
             //Download file
             if (message.Type == MessageType.Document)
             {
@@ -177,7 +204,9 @@ namespace wsizbusbot
                             string help_string = $"*Admin functions*:\n" +
                                 $"/me - print your `id`\n" +
                                 $"/help - help\n" +
-                                $"/users - users list\n" +
+                                $"/stats - bot stats\n" +
+                                $"/users - top 7 days users list\n" +
+                                $"/users_all - all users list\n" +
                                 $"/ban\\_list - banned users list\n" +
                                 $"/add\\_ban [user id or user id] - banned users list\n" +
                                 $"/send\\_all [message text] - send text to all users\n" +
@@ -217,6 +246,33 @@ namespace wsizbusbot
                             await Bot.SendTextMessageAsync(message.Chat.Id, info_data);
                             break;
                         }
+                    case "/stats":
+                        {
+                            //Authorize
+                            if (access != Acceess.Admin)
+                            {
+                                await Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
+                                return;
+                            }
+
+                            string stats = Users.Count() > 0 ? "*Users* list:\n" : "*Users list is empty";
+                            var topUsers = Users.Where(u => u.ActiveAt > DateTime.UtcNow.AddDays(-7)).ToList();
+                            var grouped = topUsers.GroupBy(u => u.ActiveAt.Date).Select(x => new { Value = x.Count(), Date = x.Key }).ToList();
+
+                            foreach (var key in grouped)
+                            {
+                                stats += $"{key.Date.ToShortDateString()} - `{key.Value}`\n";
+                            }
+                            stats += "\n" + (Stats.Count() > 0 ? "*Activity Days* list:\n" : "*Activity Days list is empty");
+                            foreach (var stat in Stats)
+                            {
+                                stats += $"{stat.Date.ToShortDateString()} - `{stat.ActiveClicks}`\n";
+                            }
+
+                            await Bot.SendTextMessageAsync(message.Chat.Id, stats, ParseMode.Markdown);
+
+                            break;
+                        }
                     case "/users":
                         {
                             //Authorize
@@ -226,14 +282,50 @@ namespace wsizbusbot
                                 return;
                             }
 
-                            int i = 0;
-                            string users = Users.Count()>0 ? "Users list:\n" : "Users list is empty";
-                            foreach (var user in Users)
+                            string users = Users.Count() > 0 ? "Users list:\n" : "Users list is empty";
+
+                            string stats = Users.Count() > 0 ? "*Users* list:\n" : "*Users list is empty";
+                            var topUsers = Users.Where(u => u.ActiveAt > DateTime.UtcNow.AddDays(-7)).OrderByDescending(u => u.ActiveAt).ToList();
+
+                            for (int i = 0; i < topUsers.Count(); i++)
                             {
-                                i++;
-                                users += $"{i}  {user.Name} `{user.Id}` @{(user.UserName != null ? user.UserName.Replace("_","\\_") : "hidden")}  {user.ActiveAt.ToShortDateString()}\n";
+                                var user = topUsers[i];
+                                users += $"{user.Name} `{user.Id}` @{(user.UserName != null ? user.UserName.Replace("_", "\\_") : "hidden")}  {user.ActiveAt.ToShortDateString()}\n";
+                                if (i == 49)
+                                {
+                                    await Bot.SendTextMessageAsync(message.Chat.Id, users, ParseMode.Markdown);
+                                    users = topUsers.Count() > 0 ? "Users list:\n" : "Users list is empty";
+                                }
                             }
-                            await Bot.SendTextMessageAsync(message.Chat.Id, users, ParseMode.Markdown);
+                            if (users != (topUsers.Count() > 0 ? "Users list:\n" : "Users list is empty"))
+                                await Bot.SendTextMessageAsync(message.Chat.Id, users, ParseMode.Markdown);
+
+                            break;
+                        }
+                    case "/users_all":
+                        {
+                            //Authorize
+                            if (access != Acceess.Admin)
+                            {
+                                await Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
+                                return;
+                            }
+
+                            string users = Users.Count() > 0 ? "Users list:\n" : "Users list is empty";
+
+                            for (int i = 0; i < Users.Count(); i++)
+                            {
+                                var user = Users[i];
+                                users += $"{i}  {user.Name} `{user.Id}` @{(user.UserName != null ? user.UserName.Replace("_", "\\_") : "hidden")}  {user.ActiveAt.ToShortDateString()}\n";
+                                if (i == 49)
+                                {
+                                    await Bot.SendTextMessageAsync(message.Chat.Id, users, ParseMode.Markdown);
+                                    users = Users.Count() > 0 ? "Users list:\n" : "Users list is empty";
+                                }
+                            }
+                            if (users != (Users.Count() > 0 ? "Users list:\n" : "Users list is empty"))
+                                await Bot.SendTextMessageAsync(message.Chat.Id, users, ParseMode.Markdown);
+
                             break;
                         }
                     case "/ban_list":
@@ -365,10 +457,29 @@ namespace wsizbusbot
             if (usr != null)
             {
                 //If new User then add
-                usr.ActiveAt = DateTime.Now;
+                usr.ActiveAt = DateTime.UtcNow;
 
                 //Save to file
                 FileHelper.SerializeObject<List<User>>(Users, Config.UsersFilePath);
+            }
+
+            //Store Stats
+            {
+                if (Stats.Where(s => s.Date == DateTime.UtcNow.Date).FirstOrDefault() == null)
+                {
+                    //Create new day
+                    Stats.Add(new Stats
+                    {
+                        ActiveClicks = 1,
+                        Date = DateTime.UtcNow.Date
+                    });
+                }
+                else
+                {
+                    Stats.Where(s => s.Date == DateTime.UtcNow.Date).First().ActiveClicks++;
+                }
+                //Save to file
+                FileHelper.SerializeObject<List<Stats>>(Stats, Config.StatsFilePath);
             }
 
             if (commands.Count() == 1)
@@ -706,6 +817,11 @@ namespace wsizbusbot
         public string UserName { get; set; }
         public DateTime ActiveAt { get; set; }
         public long Id { get; set; }
+    }
+    public class Stats
+    {
+        public DateTime Date { get; set; }
+        public long ActiveClicks { get; set; }
     }
     public enum Acceess
     {
