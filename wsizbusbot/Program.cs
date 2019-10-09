@@ -16,6 +16,7 @@ namespace wsizbusbot
 {
     class Program
     {
+        public static string BotVersion = "1.4 091019";
         private static readonly TelegramBotClient Bot = new TelegramBotClient(Config.TelegramAccessToken);
 
         public static List<User> Users = new List<User>();
@@ -57,7 +58,7 @@ namespace wsizbusbot
             Bot.OnCallbackQuery += BotOnCallbackQueryReceived;
 
             Bot.StartReceiving(Array.Empty<UpdateType>());
-            Bot.SendTextMessageAsync(Config.AdminId, $"WsizBusBot is started\nBot version `{Config.BotVersion}.`", ParseMode.Markdown);
+            Bot.SendTextMessageAsync(Config.AdminId, $"WsizBusBot is started\nBot version `{BotVersion}.`", ParseMode.Markdown);
             if(stopMode)
                 Bot.SendTextMessageAsync(Config.AdminId, "Error with file parsing", ParseMode.Markdown);
 
@@ -80,7 +81,6 @@ namespace wsizbusbot
                 foreach(var filename in files)
                 {
                     GetDataTableFromExcel(filename);
-                    Console.WriteLine($"{filename} parsed");
                 }
 
                 return true;
@@ -206,7 +206,7 @@ namespace wsizbusbot
                                 $"/help - help\n" +
                                 $"/stats - bot stats\n" +
                                 $"/users - top 7 days users list\n" +
-                                $"/users_all - all users list\n" +
+                                $"/users\\_all - all users list\n" +
                                 $"/ban\\_list - banned users list\n" +
                                 $"/add\\_ban [user id or user id] - banned users list\n" +
                                 $"/send\\_all [message text] - send text to all users\n" +
@@ -222,7 +222,7 @@ namespace wsizbusbot
                                 "Привіт, Я знаю де і коли буде всізобус, щоб дізнатися - обери куди ти хочеш доїхати\n\n" +
 
                                // $"*Используй бота на свой страх и риск, если он неправильно показывает расписание то виноват только ТЫ" +
-                                $"Bot version `{Config.BotVersion}`";
+                                $"Bot version `{BotVersion}`";
 
                             var inlineKeyboard = new InlineKeyboardMarkup(new[]
                             {
@@ -255,18 +255,18 @@ namespace wsizbusbot
                                 return;
                             }
 
-                            string stats = Users.Count() > 0 ? "*Users* list:\n" : "*Users list is empty";
-                            var topUsers = Users.Where(u => u.ActiveAt > DateTime.UtcNow.AddDays(-7)).ToList();
-                            var grouped = topUsers.GroupBy(u => u.ActiveAt.Date).Select(x => new { Value = x.Count(), Date = x.Key }).ToList();
+                            string stats = Users.Count() > 0 ? "*Users* last activity list:\n" : "*Users last activity list is empty";
+                            var topUsers = Users.Where(u => u.ActiveAt > DateTime.UtcNow.AddDays(-6)).ToList();
+                            var grouped = topUsers.GroupBy(u => u.ActiveAt.Date).Select(x => new { Value = x.Count(), Date = x.Key }).OrderByDescending(u => u.Date).ToList();
 
                             foreach (var key in grouped)
                             {
-                                stats += $"{key.Date.ToShortDateString()} - `{key.Value}`\n";
+                                stats += $"{key.Date.ToString("dd/MM/yy")} - `{key.Value}`\n";
                             }
                             stats += "\n" + (Stats.Count() > 0 ? "*Activity Days* list:\n" : "*Activity Days list is empty");
-                            foreach (var stat in Stats)
+                            foreach (var stat in Stats.OrderByDescending(s => s.Date).Where(s => s.Date > DateTime.UtcNow.AddDays(-6)))
                             {
-                                stats += $"{stat.Date.ToShortDateString()} - `{stat.ActiveClicks}`\n";
+                                stats += $"{stat.Date.ToString("dd/MM/yy")} - `{stat.ActiveClicks}`\n";
                             }
 
                             await Bot.SendTextMessageAsync(message.Chat.Id, stats, ParseMode.Markdown);
@@ -317,7 +317,7 @@ namespace wsizbusbot
                             {
                                 var user = Users[i];
                                 users += $"{i}  {user.Name} `{user.Id}` @{(user.UserName != null ? user.UserName.Replace("_", "\\_") : "hidden")}  {user.ActiveAt.ToShortDateString()}\n";
-                                if (i == 49)
+                                if (i % 50 == 0 && i > 0)
                                 {
                                     await Bot.SendTextMessageAsync(message.Chat.Id, users, ParseMode.Markdown);
                                     users = Users.Count() > 0 ? "Users list:\n" : "Users list is empty";
@@ -723,7 +723,6 @@ namespace wsizbusbot
                             if (_isDate != null)
                             {
                                 schedule.CreateDay(_isDate.Value);
-                                Console.WriteLine($"Day {cell.Text} added");
                             }
                         }
                         else
@@ -733,8 +732,7 @@ namespace wsizbusbot
                     }
                 }
             }
-            Console.WriteLine($"Parsed in {DateTime.Now - start}ms");
-
+            Console.WriteLine($"{path} is parsed in {DateTime.Now - start}ms");
         }
         private static DateTime? isDate(string str)
         {
