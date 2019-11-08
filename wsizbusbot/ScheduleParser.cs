@@ -10,13 +10,12 @@ namespace wsizbusbot
     {
         public List<Day> Days = new List<Day>();
         public List<String> StationNames = new List<String>();
-        public List<MonthNamesUa> avaliableMonths = new List<MonthNamesUa>();
+        public List<int> avaliableMonths = new List<int>();
 
         public void CreateDay(DateTime day)
         {
-            var monthName = (MonthNamesUa)(day.Month - 1);
-            if (!avaliableMonths.Contains(monthName))
-                avaliableMonths.Add(monthName);
+            if (!avaliableMonths.Contains(day.Month - 1))
+                avaliableMonths.Add(day.Month - 1);
 
             Days.Add(new Day(day));
         }
