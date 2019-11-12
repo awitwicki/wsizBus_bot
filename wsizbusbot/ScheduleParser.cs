@@ -79,22 +79,6 @@ namespace wsizbusbot
         }
     }
 
-    public enum MonthNamesUa
-    {
-        Cічень,
-        Лютий,
-        Березень,
-        Квітень,
-        Травень,
-        Червень,
-        Липень,
-        Серпень,
-        Вересень,
-        Жовтень,
-        Листопад,
-        Грудень
-    }
-
     public enum Way
     {
         ToRzeszow,

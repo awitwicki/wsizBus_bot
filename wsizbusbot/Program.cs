@@ -11,12 +11,13 @@ using Telegram.Bot;
 using Telegram.Bot.Args;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
+using System.ComponentModel.DataAnnotations;
 
 namespace wsizbusbot
 {
     class Program
     {
-        public static string BotVersion = "1.5 071119";
+        public static string BotVersion = "1.6 111119";
         private static readonly TelegramBotClient Bot = new TelegramBotClient(Config.TelegramAccessToken);
 
         public static List<User> Users = new List<User>();
@@ -90,7 +91,6 @@ namespace wsizbusbot
                 return false;
             }
         }
-        
         public static async Task<bool> TrySendMessage(long chatId, string messageText, ParseMode parseMode)
         {
             try
@@ -103,7 +103,6 @@ namespace wsizbusbot
                 Console.WriteLine(ex.ToString());
                 return false;
             }
-            
         }
         public static async Task<bool> TryDeleteMessage(long chatId, int messageId)
         {
@@ -121,6 +120,34 @@ namespace wsizbusbot
         private static async void BotOnMessageReceived(object sender, MessageEventArgs messageEventArgs)
         {
             var message = messageEventArgs.Message;
+            var usr = Users.Where(u => u.Id == message.From.Id).FirstOrDefault();
+
+            //Store Users
+            if (usr == null)
+            {
+                //If new User then add
+                Users.Add(new User
+                {
+                    Id = message.From.Id,
+                    Name = message.From.FirstName + " " + message.From.LastName,
+                    UserName = message.From.Username,
+                    ActiveAt = DateTime.UtcNow
+                });
+
+                //Save to file
+                FileHelper.SerializeObject<List<User>>(Users, Config.UsersFilePath);
+
+                Console.WriteLine($"New User {message.From.FirstName} {message.From.LastName}");
+                await Bot.SendTextMessageAsync(Config.AdminId, $"New User {message.From.FirstName} {message.From.LastName}");
+            }
+            else
+            {
+                //Update User
+                usr.ActiveAt = DateTime.UtcNow;
+
+                //Save to file
+                FileHelper.SerializeObject<List<User>>(Users, Config.UsersFilePath);
+            }
 
             if (message == null || (message.Type != MessageType.Text && message.Type != MessageType.Document)) return;
             if (message.Date.AddMinutes(1) < DateTime.UtcNow) return;
@@ -128,7 +155,7 @@ namespace wsizbusbot
             await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
 
             //Authorize User
-            var access = Authorize(message.From.Id);
+            var access = Authorize(usr.Id);
             if (access == Acceess.Ban)
             {
                 try
@@ -140,27 +167,7 @@ namespace wsizbusbot
                 return;
             }
 
-            //Store Users
-            if (!Users.Select(u => u.Id).ToList().Contains(message.From.Id))
-            {
-                //If new User then add
-                Users.Add(new User
-                {
-                    Id = message.From.Id,
-                    Name = message.From.FirstName + " " + message.From.LastName,
-                    UserName = message.From.Username
-                });
-
-                //Save to file
-                FileHelper.SerializeObject<List<User>>(Users, Config.UsersFilePath);
-
-                Console.WriteLine($"New User {message.From.FirstName} {message.From.LastName}");
-                await Bot.SendTextMessageAsync(Config.AdminId, $"New User {message.From.FirstName} {message.From.LastName}");
-            }
-            var usr = Users.Where(u => u.Id == message.From.Id).FirstOrDefault();
-            
             //Store Stats
-            if (message.From.Id != Config.AdminId)
             {
                 if (Stats.Where(s => s.Date == DateTime.UtcNow.Date).FirstOrDefault() == null)
                 {
@@ -168,12 +175,17 @@ namespace wsizbusbot
                     Stats.Add(new Stats
                     {
                         ActiveClicks = 1,
-                        Date = DateTime.UtcNow.Date
+                        Date = DateTime.UtcNow.Date,
+                        UserId = new List<long>() { usr.Id }
                     });
                 }
                 else
                 {
                     Stats.Where(s => s.Date == DateTime.UtcNow.Date).First().ActiveClicks++;
+                    if (Stats.Where(s => s.Date == DateTime.UtcNow.Date).First().UserId.FirstOrDefault(u => u == usr.Id) == null)
+                    {
+                        Stats.Where(s => s.Date == DateTime.UtcNow.Date).First().UserId.Add(usr.Id);
+                    };
                 }
                 //Save to file
                 FileHelper.SerializeObject<List<Stats>>(Stats, Config.StatsFilePath);
@@ -234,8 +246,8 @@ namespace wsizbusbot
                             {
                                 new [] // first row
                                 {
-                                    InlineKeyboardButton.WithCallbackData("CTIR", "CTIR"),
-                                    InlineKeyboardButton.WithCallbackData("Rzeszów", "RZESZOW"),
+                                    InlineKeyboardButton.WithCallbackData(Local.GetWayDisplayName(Way.ToCTIR), "CTIR"),
+                                    InlineKeyboardButton.WithCallbackData(Local.GetWayDisplayName(Way.ToRzeszow), "RZESZOW"),
                                 },
                                  new [] // first row
                                 {
@@ -267,24 +279,29 @@ namespace wsizbusbot
                                 return;
                             }
 
-                            string stats = $"*Monthly Users:* `{Users.Count(u => u.ActiveAt > DateTime.UtcNow.AddDays(-14))}`\n";
+                            string stats = $"*Monthly Users:* `{Users.Count(u => u.ActiveAt > DateTime.UtcNow.AddDays(-30))}`\n";
                             stats += $"*Weekly Users:* `{Users.Count(u => u.ActiveAt > DateTime.UtcNow.AddDays(-7))}`\n\n";
-                            stats += Users.Count() > 0 ? "*Users* last activity list:\n" : "*Users last activity list is empty";
-                            
-                            var topUsers = Users.Where(u => u.ActiveAt > DateTime.UtcNow.AddDays(-7)).ToList();
-                            var grouped = topUsers.GroupBy(u => u.ActiveAt.Date).Select(x => new { Value = x.Count(), Date = x.Key }).OrderByDescending(u => u.Date).ToList();
-
-                            foreach (var key in grouped)
-                            {
-                                stats += $"{key.Date.ToString("dd/MM/yy")} - `{key.Value}`\n";
-                            }
-                            stats += "\n" + (Stats.Count() > 0 ? "*Activity Days* list:\n" : "*Activity Days list is empty");
+                         
+                            stats += (Stats.Count() > 0 ? "*Activity Days* list:\n" : "*Activity Days* list is empty");
                             foreach (var stat in Stats.OrderByDescending(s => s.Date).Where(s => s.Date > DateTime.UtcNow.AddDays(-7)))
                             {
-                                stats += $"{stat.Date.ToString("dd/MM/yy")} - `{stat.ActiveClicks}`\n";
+                                stats += $"{stat.Date.ToString("dd/MM/yy")} - `{stat.UserId.Count}` - `{stat.ActiveClicks}`\n";
                             }
 
-                            await Bot.SendTextMessageAsync(message.Chat.Id, stats, ParseMode.Markdown);
+                            stats += "\n*Languages:*\n";
+                            stats += $"🇬🇧 - {Users.Count(u => u.Language == LocalLanguage.English)}";     
+                            stats += $" 🇺🇦 - {Users.Count(u => u.Language == LocalLanguage.Ukrainian)}";
+                            stats += $" 🇮🇩 - {Users.Count(u => u.Language == LocalLanguage.Polish)}";
+
+                            var inlineKeyboard = new InlineKeyboardMarkup(new[]
+                            {
+                                new [] // first row
+                                {
+                                    InlineKeyboardButton.WithCallbackData("Refresh", "refresh"),
+                                },
+                            });
+
+                            await Bot.SendTextMessageAsync(message.Chat.Id, stats, ParseMode.Markdown, replyMarkup: inlineKeyboard);
 
                             break;
                         }
@@ -297,24 +314,17 @@ namespace wsizbusbot
                                 return;
                             }
 
-                            string users = Users.Count() > 0 ? "Users list:\n" : "Users list is empty";
+                            var users = GenerateTopUsers();
 
-                            string stats = Users.Count() > 0 ? "*Users* list:\n" : "*Users list is empty";
-                            var topUsers = Users.Where(u => u.ActiveAt > DateTime.UtcNow.AddDays(-7)).OrderByDescending(u => u.ActiveAt).ToList();
-
-                            for (int i = 0; i < topUsers.Count(); i++)
+                            var inlineKeyboard = new InlineKeyboardMarkup(new[]
                             {
-                                var user = topUsers[i];
-                                users += $"{Local.LangIcon[(int)user.Language]} {user.Name} `{user.Id}` @{(user.UserName != null ? user.UserName.Replace("_", "\\_") : "hidden")}  {user.ActiveAt.ToShortDateString()}\n";
-                                if (i == 49)
+                                new [] // first row
                                 {
-                                    await Bot.SendTextMessageAsync(message.Chat.Id, users, ParseMode.Markdown);
-                                    users = topUsers.Count() > 0 ? "Users list:\n" : "Users list is empty";
-                                }
-                            }
-                            if (users != (topUsers.Count() > 0 ? "Users list:\n" : "Users list is empty"))
-                                await Bot.SendTextMessageAsync(message.Chat.Id, users, ParseMode.Markdown);
+                                    InlineKeyboardButton.WithCallbackData("Refresh", "refresh_users"),
+                                },
+                            });
 
+                            await Bot.SendTextMessageAsync(message.Chat.Id, users, ParseMode.Markdown, replyMarkup: inlineKeyboard);
                             break;
                         }
                     case "/users_all":
@@ -473,33 +483,39 @@ namespace wsizbusbot
             var commands = callbackQuery.Data.Split('-');
             
             var usr = Users.Where(u => u.Id == callbackQuery.From.Id).FirstOrDefault();
-            if (usr != null)
-            {
-                //If new User then add
-                usr.ActiveAt = DateTime.UtcNow;
-
-                //Save to file
-                FileHelper.SerializeObject<List<User>>(Users, Config.UsersFilePath);
-            }
-
+       
             //Store Stats
             if (callbackQuery.Message.From.Id != Config.AdminId)
             {
-                if (Stats.Where(s => s.Date == DateTime.UtcNow.Date).FirstOrDefault() == null)
+                var stat = Stats.Where(s => s.Date == DateTime.UtcNow.Date).FirstOrDefault();
+                if (stat == null)
                 {
                     //Create new day
                     Stats.Add(new Stats
                     {
                         ActiveClicks = 1,
-                        Date = DateTime.UtcNow.Date
+                        Date = DateTime.UtcNow.Date,
+                        UserId = new List<long>() { usr.Id }
                     });
                 }
                 else
                 {
-                    Stats.Where(s => s.Date == DateTime.UtcNow.Date).First().ActiveClicks++;
+                    stat.ActiveClicks++;
+                    if (stat.UserId.Count(u => u == usr.Id) == 0)
+                    {
+                        stat.UserId.Add(usr.Id);
+                    };
                 }
                 //Save to file
                 FileHelper.SerializeObject<List<Stats>>(Stats, Config.StatsFilePath);
+            }
+
+            //Update Users
+            {
+                usr.ActiveAt = DateTime.UtcNow;
+
+                //Save to file
+                FileHelper.SerializeObject<List<User>>(Users, Config.UsersFilePath);
             }
 
             //Change language
@@ -523,8 +539,8 @@ namespace wsizbusbot
                 {
                     new [] // first row
                     {
-                        InlineKeyboardButton.WithCallbackData("CTIR", "CTIR"),
-                        InlineKeyboardButton.WithCallbackData("Rzeszów", "RZESZOW"),
+                        InlineKeyboardButton.WithCallbackData(Local.GetWayDisplayName(Way.ToCTIR), "CTIR"),
+                        InlineKeyboardButton.WithCallbackData(Local.GetWayDisplayName(Way.ToRzeszow), "RZESZOW")
                     },
                     new [] // first row
                     {
@@ -547,8 +563,169 @@ namespace wsizbusbot
                 }
 
                 return;
-
             }
+
+            //Refresh stats
+            if (callbackQuery.Data == "refresh")
+            {
+                string stats = $"*Monthly Users:* `{Users.Count(u => u.ActiveAt > DateTime.UtcNow.AddDays(-30))}`\n";
+                stats += $"*Weekly Users:* `{Users.Count(u => u.ActiveAt > DateTime.UtcNow.AddDays(-7))}`\n\n";
+
+                stats += (Stats.Count() > 0 ? "*Activity Days* list:\n" : "*Activity Days* list is empty");
+                foreach (var stat in Stats.OrderByDescending(s => s.Date).Where(s => s.Date > DateTime.UtcNow.AddDays(-7)))
+                {
+                    stats += $"{stat.Date.ToString("dd/MM/yy")} - `{stat.UserId.Count}` - `{stat.ActiveClicks}`\n";
+                }
+
+                stats += "\n*Languages:*\n";
+                stats += $"🇬🇧 - {Users.Count(u => u.Language == LocalLanguage.English)}";
+                stats += $" 🇺🇦 - {Users.Count(u => u.Language == LocalLanguage.Ukrainian)}";
+                stats += $" 🇮🇩 - {Users.Count(u => u.Language == LocalLanguage.Polish)}";
+
+                stats += $"\n\n`{DateTime.UtcNow}`";
+
+                var inlineKeyboard = new InlineKeyboardMarkup(new[]
+                {
+                    new [] // first row
+                    {
+                        InlineKeyboardButton.WithCallbackData("Refresh", "refresh"),
+                    },
+                });
+
+                try
+                {
+                    await Bot.EditMessageTextAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId, stats, ParseMode.Markdown, replyMarkup: inlineKeyboard);
+                }
+                catch { }
+
+                return;
+            }
+
+            //Refresh users
+            if (callbackQuery.Data == "refresh_users")
+            {
+                var users = GenerateTopUsers();
+                users += $"\n`{DateTime.UtcNow}`";
+
+                var inlineKeyboard = new InlineKeyboardMarkup(new[]
+                {
+                    new [] // first row
+                    {
+                        InlineKeyboardButton.WithCallbackData("Refresh", "refresh_users"),
+                    },
+                });
+
+                try
+                {
+                    await Bot.EditMessageTextAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId, users, ParseMode.Markdown, replyMarkup: inlineKeyboard);
+                }
+                catch { }
+
+                return;
+            }
+            
+
+            //Start menu
+            if (callbackQuery.Data == "start")
+            {
+                var replyMessageText = Local.StartString[usr.GetLanguage] + $"Bot version `{BotVersion}`";
+                var replyInlineKeyboard = new InlineKeyboardMarkup(new[]
+                {
+                                new [] // first row
+                                {
+                                    InlineKeyboardButton.WithCallbackData(Local.GetWayDisplayName(Way.ToCTIR), "CTIR"),
+                                    InlineKeyboardButton.WithCallbackData(Local.GetWayDisplayName(Way.ToRzeszow), "RZESZOW"),
+                                },
+                                 new [] // first row
+                                {
+                                    InlineKeyboardButton.WithCallbackData("🇮🇩", "pl"),
+                                    InlineKeyboardButton.WithCallbackData("🇺🇦", "ua"),
+                                    InlineKeyboardButton.WithCallbackData("🇬🇧", "en"),
+                                }
+                            });
+
+                await Bot.EditMessageTextAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId, replyMessageText, ParseMode.Markdown, replyMarkup: replyInlineKeyboard);
+                return;
+            }
+
+            //Bus stations
+            if (callbackQuery.Data.Contains("busStations"))
+            {
+                switch (commands[1])
+                {
+                    case "allstations":
+                        {
+                            var locationsInline = new List<List<InlineKeyboardButton>>();
+                            foreach (var station in Local.BusPointNames)
+                            {
+                                locationsInline.Add(new List<InlineKeyboardButton>() { InlineKeyboardButton.WithCallbackData($"{station.Value}", $"busStations-station-{(int)station.Key}")});
+                            }
+                            
+                            var stationsInline = new InlineKeyboardMarkup(locationsInline);
+                            await Bot.EditMessageTextAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId, Local.PickBusStation[usr.GetLanguage], ParseMode.Markdown, replyMarkup: stationsInline);
+                            return;
+                        }
+                    case "station":
+                        {
+                            try
+                            {
+                                var stationId = int.Parse(commands[2]);
+                                var station = (Local.PointNames)stationId;
+                                
+                                await Bot.DeleteMessageAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
+
+                                var menuInline = new List<List<InlineKeyboardButton>>();
+                                var inlineKeyboard2 = new InlineKeyboardMarkup(new[]
+                                {
+                                    new [] // first row
+                                        {
+                                            InlineKeyboardButton.WithCallbackData(Local.BusStations[usr.GetLanguage], "busStations-allstations"),
+                                        },
+                                        new [] // first row
+                                        {
+                                            InlineKeyboardButton.WithCallbackData(Local.Menu[usr.GetLanguage], "start"),
+                                        },
+                                         new [] // first row
+                                    {
+                                        InlineKeyboardButton.WithCallbackData(Local.GetWayDisplayName(Way.ToCTIR), "CTIR"),
+                                        InlineKeyboardButton.WithCallbackData(Local.GetWayDisplayName(Way.ToRzeszow), "RZESZOW")
+                                    }
+                                });
+                                await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, Local.BusPointNames[station], ParseMode.Markdown);
+                                await Bot.SendLocationAsync(callbackQuery.Message.Chat.Id, Local.BusPoints[station][0], Local.BusPoints[station][1]);
+                                await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, Local.ReturnBack[usr.GetLanguage], ParseMode.Markdown, replyMarkup: inlineKeyboard2);
+                                return;
+                            }
+                            catch
+                            {
+                                await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, Local.ErrorMessage[usr.GetLanguage], ParseMode.Markdown);
+                                return;
+                            }
+                        }
+                }
+             
+                string messageText = $"Bot version `{BotVersion}`";
+
+                var inlineKeyboard = new InlineKeyboardMarkup(new[]
+                {
+                    new [] // first row
+                    {
+                        InlineKeyboardButton.WithCallbackData(Local.GetWayDisplayName(Way.ToCTIR), "CTIR"),
+                        InlineKeyboardButton.WithCallbackData(Local.GetWayDisplayName(Way.ToRzeszow), "RZESZOW")
+                    },
+                    new [] // first row
+                    {
+                        InlineKeyboardButton.WithCallbackData("🇮🇩", "pl"),
+                        InlineKeyboardButton.WithCallbackData("🇺🇦", "ua"),
+                        InlineKeyboardButton.WithCallbackData("🇬🇧", "en"),
+                    }
+                });
+
+                await Bot.EditMessageTextAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId, messageText, ParseMode.Markdown, replyMarkup: inlineKeyboard);
+
+                return;
+            }
+
 
             if (commands.Count() == 1)
             {
@@ -731,8 +908,12 @@ namespace wsizbusbot
                     {
             new [] // first row
             {
-                InlineKeyboardButton.WithCallbackData("CTIR", "CTIR"),
-                InlineKeyboardButton.WithCallbackData("Rzeszów", "RZESZOW")
+                InlineKeyboardButton.WithCallbackData(Local.BusStations[usr.GetLanguage], "busStations-allstations"),
+            },
+            new [] // second row
+            {
+                InlineKeyboardButton.WithCallbackData(Local.GetWayDisplayName(Way.ToCTIR), "CTIR"),
+                InlineKeyboardButton.WithCallbackData(Local.GetWayDisplayName(Way.ToRzeszow), "RZESZOW"),
             }
         });
 
@@ -824,7 +1005,7 @@ namespace wsizbusbot
         }
         public static string GenerateSchedule(DateTime date, Way direction, int lang)
         {
-            string retString = "";
+            string retString = Local.ErrorMessage[lang];
 
             string directionName = direction == Way.ToCTIR ? Local.ToCtir[lang] : Local.ToRzeszow[lang];
 
@@ -873,29 +1054,18 @@ namespace wsizbusbot
             harmonogram += "\n@wsizBus\\_bot";
             return harmonogram;
         }
-    }
-    public class User
-    {
-        public string Name { get; set; }
-        public string UserName { get; set; }
-        public DateTime ActiveAt { get; set; }
-        public long Id { get; set; }
-        public LocalLanguage Language { get; set; }
-
-        public int GetLanguage
+        public static string GenerateTopUsers()
         {
-            get{ return (int)Language; }
+            string users = Users.Count() > 0 ? "*Users list:*\n" : "Users list is empty";
+
+            var topUsers = Users.Where(u => u.ActiveAt > DateTime.UtcNow.AddDays(-7)).OrderByDescending(u => u.ActiveAt).Take(50).ToList();
+
+            foreach (var u in topUsers)
+            {
+                users += $"{Local.LangIcon[(int)u.Language]} {u.Name} `{u.Id}` @{(u.UserName != null ? u.UserName.Replace("_", "\\_") : "hidden")}  {u.ActiveAt.ToShortDateString()}\n";
+            }
+
+            return users;
         }
-    }
-    public class Stats
-    {
-        public DateTime Date { get; set; }
-        public long ActiveClicks { get; set; }
-    }
-    public enum Acceess
-    {
-        Admin,
-        User,
-        Ban
     }
 }

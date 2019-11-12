@@ -18,12 +18,34 @@ namespace wsizbusbot
              { LocalLanguage.Ukrainian, new string[]{"Cічень", "Лютий", "Березень", "Квітень","Травень","Червень","Липень","Серпень","Вересень","Жовтень","Листопад","Грудень"}},
              { LocalLanguage.Polish, new string[]{"Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec", "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień"}},
         };
-        
+
+        public static Dictionary<PointNames, float[]> BusPoints = new Dictionary<PointNames, float[]>
+        {
+             { PointNames.OfiarKatynia, new float[]{ 50.050028f, 21.976944f }},
+             { PointNames.Cieplinskiego, new float[]{ 50.038889f, 21.997722f}},
+             { PointNames.Powst, new float[]{ 50.017701f, 22.015266f}},
+             { PointNames.Tesco, new float[]{ 50.018539f, 22.013951f}},
+             { PointNames.Tyczyn, new float[]{ 49.964729f, 22.030035f}},
+             { PointNames.CTIR, new float[]{ 49.949825f, 22.059084f}},
+        };
+
+        public static Dictionary<PointNames, string> BusPointNames = new Dictionary<PointNames, string>
+        {
+             { PointNames.OfiarKatynia, "Ofiar Katynia"},
+             { PointNames.Cieplinskiego, "Cieplińskiego"},
+             { PointNames.Powst, "Powstańców Warszawy"},
+             { PointNames.Tesco, "Tesco"},
+             { PointNames.Tyczyn, "Tyczyn"},
+             { PointNames.CTIR, "Ctir"},
+        };
+
         public static List<string> StartString = new List<string>() { "Hi! I know where and whe will be wsizbus, select direction\n\n", "Привіт, Я знаю де і коли буде всізобус, щоб дізнатися - обери куди ти хочеш доїхати\n\n", "Cześć, wiem kiedy i gdzie będzie jechał wsizbus, najpierw wybierz kierunek\n\n" };
         public static List<string> Today = new List<string>() { "Today", "Сьогодні", "Dziś" };
+        public static List<string> ReturnBack = new List<string>() { "Back", "Назад", "Powrót" };
         public static List<string> Tomorrow = new List<string>() { "Tomorrow", "Завтра", "Jutro" };
         public static List<string> PickDate = new List<string>() { "Pick a date", "Обери дату", "Wybierz datę" };
         public static List<string> PickMonth = new List<string>() { "Pick a month", "Обери місяць", "Wybierz miesiąc" };
+        public static List<string> PickBusStation = new List<string>() { "Pick the bus station", "Обери пшистанек", "Wybierz Przystanek" };
         public static List<string> AnotherMonth = new List<string>() { "Another month", "Інший місяць", "Inny miesiąc" };
         public static List<string> YouAreWelcome = new List<string>() { "You are welcome", "Запрашами ще", "Zapraszamy ponownie" };
         public static List<string> ErrorMessage = new List<string>() { "Some error o.O", "Сорі, щось пішло не так (*варунек*)", "Jakiś błąd o.O" };
@@ -34,6 +56,8 @@ namespace wsizbusbot
         public static List<string> ToCtir = new List<string>() { "CTIR", "Кельнарової", "Kielnarowej" };
         public static List<string> ToRzeszow = new List<string>() { "Rzeszów", "Жешова", "Rzeszowa" };
         public static List<string> BusSchedule = new List<string>() { "bus schedule\n*to", "розклад бусiв\n*до", "harmonogram autobusów\n*do" };
+        public static List<string> BusStations = new List<string>() { "WsizBus stations (test version)", "Пшистанкі всізбуса (версія тестова)", "Przystanki WsizBusa (wersja testowa)" };
+        public static List<string> Menu = new List<string>() { "Main menu", "Голоне меню", "Główne menu" };
         
 
         public static List<string> LangIcon = new List<string>() { "🇬🇧", "🇺🇦", "🇮🇩" };
@@ -53,6 +77,20 @@ namespace wsizbusbot
         public static String[] GetMonthNames(int lang)
         {
             return MonthsVocalubrary[(LocalLanguage)lang];
+        }
+
+        public static string GetWayDisplayName(Way way)
+        {
+            return way == Way.ToCTIR ? "Rzeszów => CTIR" : "CTIR => Rzeszów";
+        }
+        public enum PointNames
+        {
+            OfiarKatynia,
+            Cieplinskiego,
+            Powst,
+            Tesco,
+            Tyczyn,
+            CTIR
         }
     }
     public enum LocalLanguage
