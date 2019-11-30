@@ -17,11 +17,10 @@ namespace wsizbusbot
 {
     class Program
     {
-        public static string BotVersion = "1.6 111119";
+        public static string BotVersion = "1.7 301119";
         private static readonly TelegramBotClient Bot = new TelegramBotClient(Config.TelegramAccessToken);
 
         public static List<User> Users = new List<User>();
-        public static List<long> BlockList = new List<long>();
         public static List<Stats> Stats = new List<Stats>();
         public static Schedule schedule = new Schedule();
         public static bool stopMode = false;
@@ -30,13 +29,6 @@ namespace wsizbusbot
             var tryCreateDirectory = Directory.CreateDirectory(Config.DataPath);
 
             stopMode = !ParseFiles().Result;
-
-            //Load blocklist
-            var file_blocklist = FileHelper.DeSerializeObject<List<long>>(Config.BlocklistFilePath);
-            if (file_blocklist == null)
-                FileHelper.SerializeObject<List<long>>(new List<long>(), Config.BlocklistFilePath);
-            else
-                BlockList = file_blocklist;
 
             //Load Users
             var file_users = FileHelper.DeSerializeObject<List<User>>(Config.UsersFilePath);
@@ -125,14 +117,17 @@ namespace wsizbusbot
             //Store Users
             if (usr == null)
             {
-                //If new User then add
-                Users.Add(new User
+                usr = new User
                 {
                     Id = message.From.Id,
                     Name = message.From.FirstName + " " + message.From.LastName,
                     UserName = message.From.Username,
-                    ActiveAt = DateTime.UtcNow
-                });
+                    ActiveAt = DateTime.UtcNow,
+                    Access = (message.From.Id == Config.AdminId) ? Acceess.Admin : Acceess.User
+                };
+
+                //If new User then add
+                Users.Add(usr);
 
                 //Save to file
                 FileHelper.SerializeObject<List<User>>(Users, Config.UsersFilePath);
@@ -155,12 +150,12 @@ namespace wsizbusbot
             await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
 
             //Authorize User
-            var access = Authorize(usr.Id);
+            var access = usr.Access;
             if (access == Acceess.Ban)
             {
                 try
                 {
-                    await Bot.SendTextMessageAsync(message.Chat.Id, "permament ban", ParseMode.Markdown);
+                    await Bot.SendTextMessageAsync(message.Chat.Id, Local.Permaban, ParseMode.Markdown);
                     await Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
                 }
                 catch { }
@@ -362,10 +357,10 @@ namespace wsizbusbot
                                 return;
                             }
 
-                            string users = BlockList.Count() == 0? "Ban list is empty":"";
-                            foreach (var user_id in BlockList)
+                            string users = Users.Count(u => u.Access == Acceess.Ban) == 0? "Ban list is empty":"";
+                            foreach (var user_id in Users.Where(u => u.Access == Acceess.Ban).ToList())
                             {
-                                users += $"`{user_id}`\n";
+                                users += $"`{user_id.Id}` {user_id.Name.Replace("_", "\\_")} @{user_id.UserName.Replace("_", "\\_")}\n";
                             }
                             await Bot.SendTextMessageAsync(message.Chat.Id, users, ParseMode.Markdown);
                             break;
@@ -387,32 +382,20 @@ namespace wsizbusbot
                                 {
                                     var usrId = msgs[1];
                                     var id = Convert.ToInt64(usrId);
-                                    if (id > 10000)
-                                    {
-                                        if (!BlockList.Contains(id))
-                                            BlockList.Add(id);
-                                    }
-                                    else
-                                    {
-                                        try
-                                        {
-                                            id = Users[(int)id].Id;
-                                            if (!BlockList.Contains(id))
-                                                BlockList.Add(id);
-                                        }
-                                        catch
-                                        {
 
-                                        }
+                                    if (!Users.Where(u => u.Access == Acceess.Ban).Select(u => u.Id).Contains((long)id))
+                                    {
+                                        var usr_ = Users.First(u => u.Id == id);
+                                        usr_.Access = Acceess.Ban;
                                     }
-
+                                    
                                     //save to file
-                                    FileHelper.SerializeObject<List<long>>(BlockList, Config.BlocklistFilePath);
+                                    FileHelper.SerializeObject<List<User>>(Users, Config.UsersFilePath);
                                     await Bot.SendTextMessageAsync(message.Chat.Id, "User added to blocklist", ParseMode.Markdown);
                                 }
                                 catch
                                 {
-
+                                    await Bot.SendTextMessageAsync(message.Chat.Id, $"There is no users with id `{msgs[1]}`", ParseMode.Markdown);
                                 }
                             }
                             break;
@@ -475,6 +458,16 @@ namespace wsizbusbot
                             }
                             break;
                         }
+                    case "/clean":
+                        {
+                            Users = Users.Where(u => u.ActiveAt > DateTime.UtcNow.AddYears(-1)).ToList();
+
+                            //Save to file
+                            FileHelper.SerializeObject<List<User>>(Users, Config.UsersFilePath);
+
+                            await Bot.SendTextMessageAsync(message.Chat.Id, "ok");
+                            break;
+                        }
                 }
         }
         private static async void BotOnCallbackQueryReceived(object sender, CallbackQueryEventArgs callbackQueryEventArgs)
@@ -483,7 +476,19 @@ namespace wsizbusbot
             var commands = callbackQuery.Data.Split('-');
             
             var usr = Users.Where(u => u.Id == callbackQuery.From.Id).FirstOrDefault();
-       
+
+            //Authorize User
+            var access = usr.Access;
+            if (access == Acceess.Ban)
+            {
+                try
+                {
+                    await Bot.EditMessageTextAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId, Local.Permaban);
+                }
+                catch { }
+                return;
+            }
+
             //Store Stats
             if (callbackQuery.Message.From.Id != Config.AdminId)
             {
@@ -623,7 +628,6 @@ namespace wsizbusbot
 
                 return;
             }
-            
 
             //Start menu
             if (callbackQuery.Data == "start")
@@ -725,7 +729,6 @@ namespace wsizbusbot
 
                 return;
             }
-
 
             if (commands.Count() == 1)
             {
@@ -997,12 +1000,6 @@ namespace wsizbusbot
                 return null;
             }
         }
-        public static Acceess Authorize(long userId)
-        {
-            if (BlockList.Contains(userId)) return Acceess.Ban;
-            if (userId == Config.AdminId) return Acceess.Admin;
-            return Acceess.User;
-        }
         public static string GenerateSchedule(DateTime date, Way direction, int lang)
         {
             string retString = Local.ErrorMessage[lang];
@@ -1062,7 +1059,7 @@ namespace wsizbusbot
 
             foreach (var u in topUsers)
             {
-                users += $"{Local.LangIcon[(int)u.Language]} {u.Name} `{u.Id}` @{(u.UserName != null ? u.UserName.Replace("_", "\\_") : "hidden")}  {u.ActiveAt.ToShortDateString()}\n";
+                users += $"{Local.LangIcon[(int)u.Language]} {u.Name} `{u.Id}` @{(u.UserName != null ? u.UserName.Replace("_", "\\_") : "hidden")}  {u.ActiveAt.ToString("dd/MM/yy")}\n";
             }
 
             return users;

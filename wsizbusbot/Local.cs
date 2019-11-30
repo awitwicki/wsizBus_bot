@@ -59,7 +59,8 @@ namespace wsizbusbot
         public static List<string> BusStations = new List<string>() { "WsizBus stations (test version)", "Пшистанкі всізбуса (версія тестова)", "Przystanki WsizBusa (wersja testowa)" };
         public static List<string> Menu = new List<string>() { "Main menu", "Голоне меню", "Główne menu" };
         
-
+        public static String Permaban = "Permanent ban";
+        
         public static List<string> LangIcon = new List<string>() { "🇬🇧", "🇺🇦", "🇮🇩" };
                 
         public static String[] GetDaysOfWeekNames(LocalLanguage lang)

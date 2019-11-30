@@ -9,7 +9,6 @@ namespace wsizbusbot
         public static string TelegramAccessToken = "TELEGRAM BOT TOKEN";
         public static long AdminId = 0; //type your telegram Id
         public static string DataPath = @"..\..\..\data\";
-        public static string BlocklistFilePath = DataPath + "blocklist.xml";
         public static string UsersFilePath = DataPath + "users.xml";
         public static string StatsFilePath = DataPath + "stats.xml";
     }
