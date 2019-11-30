@@ -17,7 +17,7 @@ namespace wsizbusbot
 {
     class Program
     {
-        public static string BotVersion = "1.7 301119";
+        public static string BotVersion = "1.8 301119";
         private static readonly TelegramBotClient Bot = new TelegramBotClient(Config.TelegramAccessToken);
 
         public static List<User> Users = new List<User>();
@@ -70,7 +70,6 @@ namespace wsizbusbot
                 if (files.Count() == 0)
                     stopMode = true;
 
-                var filtered_files = files.Select(x => Convert.ToInt32(Path.GetFileNameWithoutExtension(x).Remove(6))).ToList();
                 foreach(var filename in files)
                 {
                     GetDataTableFromExcel(filename);
@@ -83,17 +82,17 @@ namespace wsizbusbot
                 return false;
             }
         }
-        public static async Task<bool> TrySendMessage(long chatId, string messageText, ParseMode parseMode)
+        public static async Task<Telegram.Bot.Types.Message> TrySendMessage(long chatId, string messageText, ParseMode parseMode)
         {
             try
             {
-                await Bot.SendTextMessageAsync(chatId, messageText, parseMode);
-                return true;
+                var res = await Bot.SendTextMessageAsync(chatId, messageText, parseMode);
+                return res;
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-                return false;
+                return null;
             }
         }
         public static async Task<bool> TryDeleteMessage(long chatId, int messageId)
@@ -197,11 +196,16 @@ namespace wsizbusbot
                     {
                         client.DownloadFile(new Uri(download_url), $"{Config.DataPath}{message.Document.FileName}");
                     }
-                    var res = await TrySendMessage(Config.AdminId, "Success, reboot required", ParseMode.Default);
+                    var res = await TrySendMessage(Config.AdminId, "Downloaded", ParseMode.Default);
+
+                    GetDataTableFromExcel(Config.DataPath + message.Document.FileName);
+
+                    if(res != null)
+                       await Bot.EditMessageTextAsync(res.Chat.Id, res.MessageId, res.Text + "\nParsed", ParseMode.Default);
                 }
                 catch (Exception ex)
                 {
-                    var res = await TrySendMessage(Config.AdminId, ex.ToString(), ParseMode.Default);
+                    await TrySendMessage(Config.AdminId, ex.ToString(), ParseMode.Default);
                 }
                 return;
             }
@@ -1043,7 +1047,7 @@ namespace wsizbusbot
                 {
                     foreach (var station in route)
                     {
-                        harmonogram += ("`" + station.Time?.ToString("HH:mm") + "` \t  ");
+                        harmonogram += ("`" + (station.Time?.Hour != 0 ? station.Time?.ToString("HH:mm") : " --  ") + "` \t  ");
                     }
                     harmonogram += "\n";
                 }
