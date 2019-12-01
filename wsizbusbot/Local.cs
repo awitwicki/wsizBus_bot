@@ -14,7 +14,7 @@ namespace wsizbusbot
         };
         public static Dictionary<LocalLanguage, String[]> MonthsVocalubrary = new Dictionary<LocalLanguage, string[]>
         {
-             { LocalLanguage.English, new string[]{"January", "February", "Marc", "April", "May", "June", "July", "August", "September", "October", "November" }},
+             { LocalLanguage.English, new string[]{"January", "February", "Marc", "April", "May", "June", "July", "August", "September", "October", "November", "December" }},
              { LocalLanguage.Ukrainian, new string[]{"Cічень", "Лютий", "Березень", "Квітень","Травень","Червень","Липень","Серпень","Вересень","Жовтень","Листопад","Грудень"}},
              { LocalLanguage.Polish, new string[]{"Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec", "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień"}},
         };

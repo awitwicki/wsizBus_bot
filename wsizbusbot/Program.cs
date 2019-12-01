@@ -17,7 +17,7 @@ namespace wsizbusbot
 {
     class Program
     {
-        public static string BotVersion = "1.8 301119";
+        public static string BotVersion = "1.9 011219";
         private static readonly TelegramBotClient Bot = new TelegramBotClient(Config.TelegramAccessToken);
 
         public static List<User> Users = new List<User>();
@@ -229,7 +229,7 @@ namespace wsizbusbot
                                 $"/users - top 7 days users list\n" +
                                 $"/users\\_all - all users list\n" +
                                 $"/ban\\_list - banned users list\n" +
-                                $"/add\\_ban [user id or user id] - banned users list\n" +
+                                $"/ban [user id] - bann\\unban user by id\n" +
                                 $"/send\\_all [message text] - send text to all users\n" +
                                 $"/send\\_test [message text] - send text to you\n";
 
@@ -364,12 +364,12 @@ namespace wsizbusbot
                             string users = Users.Count(u => u.Access == Acceess.Ban) == 0? "Ban list is empty":"";
                             foreach (var user_id in Users.Where(u => u.Access == Acceess.Ban).ToList())
                             {
-                                users += $"`{user_id.Id}` {user_id.Name.Replace("_", "\\_")} @{user_id.UserName.Replace("_", "\\_")}\n";
+                                users += $"`{user_id.Id}` {user_id.Name.Replace("_", "\\_")} @{(user_id.UserName != null ? user_id.UserName.Replace("_", "\\_") : "hidden")}\n";
                             }
                             await Bot.SendTextMessageAsync(message.Chat.Id, users, ParseMode.Markdown);
                             break;
                         }
-                    case "/add_ban":
+                    case "/ban":
                         {
                             //Authorize
                             if (access != Acceess.Admin)
@@ -387,15 +387,15 @@ namespace wsizbusbot
                                     var usrId = msgs[1];
                                     var id = Convert.ToInt64(usrId);
 
-                                    if (!Users.Where(u => u.Access == Acceess.Ban).Select(u => u.Id).Contains((long)id))
+                                    if (Users.Select(u => u.Id).Contains((long)id))
                                     {
                                         var usr_ = Users.First(u => u.Id == id);
-                                        usr_.Access = Acceess.Ban;
+                                        usr_.Access = usr_.Access == Acceess.User ? Acceess.Ban : Acceess.User;
                                     }
                                     
                                     //save to file
                                     FileHelper.SerializeObject<List<User>>(Users, Config.UsersFilePath);
-                                    await Bot.SendTextMessageAsync(message.Chat.Id, "User added to blocklist", ParseMode.Markdown);
+                                    await Bot.SendTextMessageAsync(message.Chat.Id, $"Users access is changed", ParseMode.Markdown);
                                 }
                                 catch
                                 {
@@ -777,9 +777,8 @@ namespace wsizbusbot
                     }
 
                     var inlineKeyboard = new InlineKeyboardMarkup(calendarKeyboard);
-                    var keyboardText = (actualSchedule.Count > 0) ? $"{Local.PickDate[(int)usr.Language]} ({Local.GetMonthNames(usr.Language)[DateTime.UtcNow.Month - 1]})" : $"{Local.NoDataForMonth[usr.GetLanguage]} (*{Local.GetMonthNames(usr.Language)[DateTime.UtcNow.Month]}*) {Local.PickAnother[usr.GetLanguage]}";
+                    var keyboardText = (actualSchedule.Count > 0) ? $"{Local.PickDate[(int)usr.Language]} ({Local.GetMonthNames(usr.Language)[DateTime.UtcNow.Month - 1]})" : $"{Local.NoDataForMonth[usr.GetLanguage]} (*{Local.GetMonthNames(usr.Language)[DateTime.UtcNow.Month - 1]}*) {Local.PickAnother[usr.GetLanguage]}";
                     await Bot.SendTextMessageAsync(callbackQuery.Message.Chat.Id, keyboardText, ParseMode.Markdown, replyMarkup: inlineKeyboard);
-
                 }
                 catch (Exception ex)
                 {
