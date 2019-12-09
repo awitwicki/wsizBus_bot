@@ -21,7 +21,7 @@ namespace wsizbusbot
 
         public static Dictionary<PointNames, float[]> BusPoints = new Dictionary<PointNames, float[]>
         {
-             { PointNames.OfiarKatynia, new float[]{ 50.050028f, 21.976944f }},
+             { PointNames.OfiarKatynia, new float[]{ 50.052907f, 21.978515f}},
              { PointNames.Cieplinskiego, new float[]{ 50.038889f, 21.997722f}},
              { PointNames.Powst, new float[]{ 50.017701f, 22.015266f}},
              { PointNames.Tesco, new float[]{ 50.018539f, 22.013951f}},
@@ -57,7 +57,7 @@ namespace wsizbusbot
         public static List<string> ToRzeszow = new List<string>() { "Rzeszów", "Жешова", "Rzeszowa" };
         public static List<string> BusSchedule = new List<string>() { "bus schedule\n*to", "розклад бусiв\n*до", "harmonogram autobusów\n*do" };
         public static List<string> BusStations = new List<string>() { "WsizBus stations (test version)", "Пшистанкі всізбуса (версія тестова)", "Przystanki WsizBusa (wersja testowa)" };
-        public static List<string> Menu = new List<string>() { "Main menu", "Голоне меню", "Główne menu" };
+        public static List<string> Menu = new List<string>() { "Main menu", "Головне меню", "Główne menu" };
         
         public static String Permaban = "Permanent ban";
         

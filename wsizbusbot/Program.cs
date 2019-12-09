@@ -17,7 +17,7 @@ namespace wsizbusbot
 {
     class Program
     {
-        public static string BotVersion = "1.9 011219";
+        public static string BotVersion = "1.10 091219";
         private static readonly TelegramBotClient Bot = new TelegramBotClient(Config.TelegramAccessToken);
 
         public static List<User> Users = new List<User>();
