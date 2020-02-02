@@ -61,7 +61,7 @@ namespace wsizbusbot
         
         public static String Permaban = "Permanent ban";
         
-        public static List<string> LangIcon = new List<string>() { "🇬🇧", "🇺🇦", "🇮🇩" };
+        public static List<string> LangIcon = new List<string>() { "🇬🇧", "🇺🇦", "🇵🇱" };
                 
         public static String[] GetDaysOfWeekNames(LocalLanguage lang)
         {

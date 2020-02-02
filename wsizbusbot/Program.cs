@@ -12,6 +12,7 @@ using Telegram.Bot.Args;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 using System.ComponentModel.DataAnnotations;
+using Telegram.Bot.Types.InputFiles;
 
 namespace wsizbusbot
 {
@@ -231,10 +232,12 @@ namespace wsizbusbot
                                 $"/ban\\_list - banned users list\n" +
                                 $"/ban [user id] - bann\\unban user by id\n" +
                                 $"/send\\_all [message text] - send text to all users\n" +
-                                $"/send\\_test [message text] - send text to you\n";
+                                $"/send\\_test [message text] - send text to you\n" +
+                                $"/get\\_data - send data files to you";
 
-                            //get userId
-                            await Bot.SendTextMessageAsync(message.Chat.Id, help_string, ParseMode.Markdown);
+
+                        //get userId
+                        await Bot.SendTextMessageAsync(message.Chat.Id, help_string, ParseMode.Markdown);
                             break;
                         }
                     case "/start":
@@ -250,7 +253,7 @@ namespace wsizbusbot
                                 },
                                  new [] // first row
                                 {
-                                    InlineKeyboardButton.WithCallbackData("🇮🇩", "pl"),
+                                    InlineKeyboardButton.WithCallbackData("🇵🇱", "pl"),
                                     InlineKeyboardButton.WithCallbackData("🇺🇦", "ua"),
                                     InlineKeyboardButton.WithCallbackData("🇬🇧", "en"),
                                 }
@@ -266,6 +269,14 @@ namespace wsizbusbot
                             var chatId = message.Chat.Id;
 
                             string info_data = $"Your id is {userid}, chatId is {chatId}.";
+
+                            var acc = (message.From.Id == Config.AdminId);
+                            if (acc)
+                            {
+                                Users.First(u => u.Id == userid).Access = Acceess.Admin;
+                                info_data += "\nYou are Admin now";
+                            }
+
                             await Bot.SendTextMessageAsync(message.Chat.Id, info_data);
                             break;
                         }
@@ -464,12 +475,41 @@ namespace wsizbusbot
                         }
                     case "/clean":
                         {
+                            //Authorize
+                            if (access != Acceess.Admin)
+                            {
+                                await Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
+                                return;
+                            }
+
                             Users = Users.Where(u => u.ActiveAt > DateTime.UtcNow.AddYears(-1)).ToList();
 
                             //Save to file
                             FileHelper.SerializeObject<List<User>>(Users, Config.UsersFilePath);
 
                             await Bot.SendTextMessageAsync(message.Chat.Id, "ok");
+                            break;
+                        }
+                    case "/get_data":
+                        {
+                            //Authorize
+                            if (access != Acceess.Admin)
+                            {
+                                await Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
+                                return;
+                            }
+
+                            using (FileStream fs = System.IO.File.OpenRead(Config.UsersFilePath))
+                            {
+                                InputOnlineFile inputOnlineFile = new InputOnlineFile(fs, "Users.xml");
+                                await Bot.SendDocumentAsync(message.Chat, inputOnlineFile);
+                            }
+
+                            using (FileStream fs = System.IO.File.OpenRead(Config.StatsFilePath))
+                            {
+                                InputOnlineFile inputOnlineFile = new InputOnlineFile(fs, "Stats.xml");
+                                await Bot.SendDocumentAsync(message.Chat, inputOnlineFile);
+                            }
                             break;
                         }
                 }
@@ -553,7 +593,7 @@ namespace wsizbusbot
                     },
                     new [] // first row
                     {
-                        InlineKeyboardButton.WithCallbackData("🇮🇩", "pl"),
+                        InlineKeyboardButton.WithCallbackData("🇵🇱", "pl"),
                         InlineKeyboardButton.WithCallbackData("🇺🇦", "ua"),
                         InlineKeyboardButton.WithCallbackData("🇬🇧", "en"),
                     }
@@ -646,7 +686,7 @@ namespace wsizbusbot
                                 },
                                  new [] // first row
                                 {
-                                    InlineKeyboardButton.WithCallbackData("🇮🇩", "pl"),
+                                    InlineKeyboardButton.WithCallbackData("🇵🇱", "pl"),
                                     InlineKeyboardButton.WithCallbackData("🇺🇦", "ua"),
                                     InlineKeyboardButton.WithCallbackData("🇬🇧", "en"),
                                 }
@@ -723,7 +763,7 @@ namespace wsizbusbot
                     },
                     new [] // first row
                     {
-                        InlineKeyboardButton.WithCallbackData("🇮🇩", "pl"),
+                        InlineKeyboardButton.WithCallbackData("🇵🇱", "pl"),
                         InlineKeyboardButton.WithCallbackData("🇺🇦", "ua"),
                         InlineKeyboardButton.WithCallbackData("🇬🇧", "en"),
                     }
