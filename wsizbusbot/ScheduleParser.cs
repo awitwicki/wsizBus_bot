@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 
 namespace wsizbusbot
@@ -10,12 +12,12 @@ namespace wsizbusbot
     {
         public List<Day> Days = new List<Day>();
         public List<String> StationNames = new List<String>();
-        public List<int> avaliableMonths = new List<int>();
+        public List<DateTime> avaliableMonths = new List<DateTime>();
 
         public void CreateDay(DateTime day)
         {
-            if (!avaliableMonths.Contains(day.Month - 1))
-                avaliableMonths.Add(day.Month - 1);
+            if (!avaliableMonths.Contains(new DateTime(day.Year, day.Month , 1)))
+                avaliableMonths.Add(new DateTime(day.Year, day.Month, 1));
 
             Days.Add(new Day(day));
         }

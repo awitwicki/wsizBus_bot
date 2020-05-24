@@ -14,9 +14,9 @@ namespace wsizbusbot
         };
         public static Dictionary<LocalLanguage, String[]> MonthsVocalubrary = new Dictionary<LocalLanguage, string[]>
         {
-             { LocalLanguage.English, new string[]{"January", "February", "Marc", "April", "May", "June", "July", "August", "September", "October", "November", "December" }},
-             { LocalLanguage.Ukrainian, new string[]{"Cічень", "Лютий", "Березень", "Квітень","Травень","Червень","Липень","Серпень","Вересень","Жовтень","Листопад","Грудень"}},
-             { LocalLanguage.Polish, new string[]{"Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec", "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień"}},
+             { LocalLanguage.English, new string[]{"", "January", "February", "Marc", "April", "May", "June", "July", "August", "September", "October", "November", "December" }},
+             { LocalLanguage.Ukrainian, new string[]{"", "Cічень", "Лютий", "Березень", "Квітень","Травень","Червень","Липень","Серпень","Вересень","Жовтень","Листопад","Грудень"}},
+             { LocalLanguage.Polish, new string[]{"", "Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec", "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień"}},
         };
 
         public static Dictionary<PointNames, float[]> BusPoints = new Dictionary<PointNames, float[]>
@@ -48,7 +48,8 @@ namespace wsizbusbot
         public static List<string> PickBusStation = new List<string>() { "Pick the bus station", "Обери пшистанек", "Wybierz Przystanek" };
         public static List<string> AnotherMonth = new List<string>() { "Another month", "Інший місяць", "Inny miesiąc" };
         public static List<string> YouAreWelcome = new List<string>() { "You are welcome", "Запрашами ще", "Zapraszamy ponownie" };
-        public static List<string> ErrorMessage = new List<string>() { "Some error o.O", "Сорі, щось пішло не так (*варунек*)", "Jakiś błąd o.O" };
+        public static List<string> ErrorMessage = new List<string>() { "Some error o.O\nTry to /start again", "Сорі, щось пішло не так (*варунек*)\nЗпробуй /start", "Jakiś błąd o.O\n Spróbuj /start" };
+        public static List<string> Offline = new List<string>() { "Bot was offline, try again now", "Бот був оффлайн, спробуй зараз", "Bot był offline, spróbuj teraz" };
         public static List<string> NoDataForMonth = new List<string>() { "No schedules for that month", "Нема розкладу на цей місяць ", "Nie ma harmonogramu na ten miesiąc, wybierz inny" };
         public static List<string> PickAnother = new List<string>() { ", pick another.", ", обери інший.", ", wybierz inny" };
         public static List<string> FirstBus = new List<string>() { "First bus leaves at:", "Перший бус їде:", "Pierwszy bus jedzie:" };
@@ -99,5 +100,28 @@ namespace wsizbusbot
         English = 0,
         Ukrainian = 1,
         Polish = 2
+    }
+
+    public static class Commands
+    {
+        //Base
+        public static string MethodName = "MethodName";
+
+        //MethodNames
+        public static string ChangeLanguage = "ChangeLanguage";
+        public static string RefreshStats = "RefreshStats";
+        public static string RefreshUsers = "RefreshUsers";
+        public static string GetStartMenu = "GetStartMenu";
+        public static string GetBusStation = "GetBusStation";
+        public static string GetMonths = "GetMonths";
+        public static string GetScheduleForMonth = "GetScheduleForMonth";
+        public static string GetScheduleForDay = "GetScheduleForDay";
+
+        //ParamNames
+        public static string Month = "Month";
+        public static string Direction = "Direction";
+        public static string Language = "Language";
+        public static string Date = "Date";
+        public static string BusStation = "BusStation";
     }
 }

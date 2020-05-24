@@ -10,4 +10,10 @@
     <PackageReference Include="Telegram.Bot" Version="15.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="data\201905271324.xlsx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
