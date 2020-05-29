@@ -1,4 +1,5 @@
-﻿using System;
+﻿using OpenWeatherMap;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -28,5 +29,11 @@ namespace wsizbusbot
         User = 0,
         Admin = 1,
         Ban = 2
+    }
+
+    public class WeatherForecast
+    {
+        public DateTime LastUpdate { get; set; }
+        public List<List<ForecastTime>> Forecasts = new List<List<ForecastTime>>();
     }
 }

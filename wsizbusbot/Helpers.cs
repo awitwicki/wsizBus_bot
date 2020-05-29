@@ -1,4 +1,5 @@
-﻿using System;
+﻿using OpenWeatherMap;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -275,7 +276,9 @@ namespace wsizbusbot
 
             var monthName = Local.GetMonthNames(lang)[date.Month];
 
-            string harmonogram = $"*{Local.GetDaysOfWeekNames(lang)[(int)date.DayOfWeek]} {date.Day} {monthName}* {Local.BusSchedule[lang]} {directionName}*\n\n";
+            string weather = WeatherHelper.GetWeatherForBusRide(date, lang).Result;
+
+            string harmonogram = $"*{Local.GetDaysOfWeekNames(lang)[(int)date.DayOfWeek]} {date.Day} {monthName}* {weather}{Local.BusSchedule[lang]} {directionName}*\n\n";
 
             var firstRoute = grouped[0].Where(g => g.Time != null).ToList();
 
@@ -307,6 +310,84 @@ namespace wsizbusbot
             }
             harmonogram += "\n@wsizBus\\_bot";
             return harmonogram;
+        }
+    }
+
+    public static class WeatherHelper
+    {
+        private static OpenWeatherMapClient Client = new OpenWeatherMapClient("94d06ec9cb3d5ea1000cc2e9ccf05492");
+        public static WeatherForecast WeatherForecast { get; set; } = new WeatherForecast();
+
+        public static async Task<List<List<ForecastTime>>> Update()
+        {
+            if (WeatherForecast.LastUpdate.AddHours(1) < DateTime.UtcNow)
+            {
+                WeatherForecast.LastUpdate = DateTime.UtcNow;
+
+                var responseEn = await Client.Forecast.GetByName("Rzeszow", language: OpenWeatherMapLanguage.EN);
+                var responseUa = await Client.Forecast.GetByName("Rzeszow", language: OpenWeatherMapLanguage.UA);
+                var responsePl = await Client.Forecast.GetByName("Rzeszow", language: OpenWeatherMapLanguage.PL);
+
+                WeatherForecast.Forecasts = new List<List<ForecastTime>>{ responseEn.Forecast.ToList(), responseUa.Forecast.ToList(), responsePl.Forecast.ToList() };
+
+                WeatherForecast.Forecasts.ForEach(f => f.ForEach(a => a.Symbol.Name = char.ToUpper(a.Symbol.Name[0]) + a.Symbol.Name.Substring(1)));
+                WeatherForecast.Forecasts.ForEach(f => f.ForEach(a => a.From = a.From.AddHours(2)));
+
+                return WeatherForecast.Forecasts;
+            }
+            return WeatherForecast.Forecasts;
+        }
+
+        public static async Task<string> GetWeatherForBusRide(DateTime forDay, int userLanguage)
+        {
+            string result = "";
+
+            try
+            {
+                var forecasts = await Update();
+                var translatedForecasts = forecasts[userLanguage];
+
+                //If is not forecasts for that day
+                if (!translatedForecasts.Select(a => a.From.Date).Contains(forDay))
+                    throw new Exception();
+
+                var selectedForecasts = translatedForecasts.Where(a => a.From.Date == forDay && a.From.Hour > 6).ToList();
+                foreach (var item in selectedForecasts.Take(5))
+                {
+                    List<int> musTHaveUmbrella = new List<int>() { 611, 612, 615, 616 };
+
+                    if (item.Symbol.Number < 300)
+                        result += "🌩";
+                    else if (item.Symbol.Number < 600 || musTHaveUmbrella.Contains(item.Symbol.Number) || item.Symbol.Number == 906)
+                        result += "🌧";
+                }
+                result += $"` {(selectedForecasts.First().Temperature.Value - 273.15).ToString("f1")}°C`\n";
+                return result;
+            }
+            catch
+            {
+                return "\n";
+            }
+        }
+
+        public static async Task<string> GetWeather(int userLanguage)
+        {
+            string result = $"*{Local.WeatherInRzeszow[userLanguage]} {DateTime.UtcNow.AddHours(2).ToShortDateString()}*\n\n";
+
+            try
+            {
+                var forecasts = await Update();
+                var translatedForecasts = forecasts[userLanguage];
+
+                foreach (var item in translatedForecasts.Take(12))
+                {
+                    result += $"`{item.From.ToString("HH:MM")}`  {item.Symbol.Name} `{(item.Temperature.Value - 273.15).ToString("f1")}°C`\n";
+                }
+            }
+            catch
+            {}
+
+            return result;
         }
     }
 }

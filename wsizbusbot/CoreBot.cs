@@ -107,11 +107,12 @@ namespace wsizbusbot
         private static async void BotOnCallbackQueryReceived(object sender, CallbackQueryEventArgs callbackQueryEventArgs)
         {
             var callbackQuery = callbackQueryEventArgs.CallbackQuery;
-            await Bot.AnswerCallbackQueryAsync(callbackQuery.Id);
 
             //Handle stats, access, filters
             if (!HandleMessage(callbackQueryEventArgs : callbackQueryEventArgs))
                 return;
+
+            await Bot.AnswerCallbackQueryAsync(callbackQuery.Id);
 
             Invoker(callbackQueryEventArgs: callbackQueryEventArgs);
             

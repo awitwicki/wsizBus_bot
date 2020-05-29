@@ -227,6 +227,17 @@ namespace wsizbusbot.Controllers
             }
         }
 
+        public async void Weather(MessageEventArgs messageEventArgs)
+        {
+            var user = ApplicationData.GetUser(messageEventArgs);
+            var weather = await WeatherHelper.GetWeather(user.GetLanguage);
+            weather += "\n@wsizBus\\_bot";
+
+            var inlineKeyboard = TemplateModelsBuilder.RefreshWeather(user.GetLanguage);
+
+            CoreBot.SendMessage(messageEventArgs.Message.Chat.Id, weather, ParseMode.Markdown, replyMarkup: inlineKeyboard);
+        }
+
         [Role(Acceess.Admin)]
         public void Help(MessageEventArgs messageEventArgs)
         {
@@ -242,7 +253,8 @@ namespace wsizbusbot.Controllers
                 $"/ban [user id] - bann\\unban user by id\n" +
                 $"/send\\_all [message text] - send text to all users\n" +
                 $"/send\\_test [message text] - send text to you\n" +
-                $"/get\\_data - send data files to you";
+                $"/get\\_data - send data files to you\n" +
+                $"/weather - get weather forecast";
 
             CoreBot.SendMessage(message.Chat.Id, help_string, ParseMode.Markdown);
         }

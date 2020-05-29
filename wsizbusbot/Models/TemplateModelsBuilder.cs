@@ -21,6 +21,10 @@ namespace wsizbusbot.Models
             return new InlineKeyboardMarkup(new[]
             {
                 WaysForBus(),
+                 new [] // first row
+                {
+                    InlineKeyboardButton.WithCallbackData("Weather", $"{Commands.RefreshWeather}")
+                },
                 new [] // first row
                 {
                     InlineKeyboardButton.WithCallbackData("🇵🇱", $"{Commands.ChangeLanguage}?{Commands.Language}=pl"),
@@ -37,6 +41,20 @@ namespace wsizbusbot.Models
                 {
                     InlineKeyboardButton.WithCallbackData("Refresh", Commands.RefreshUsers),
                 },
+            });
+        }
+        public static InlineKeyboardMarkup RefreshWeather(int language)
+        {
+            return new InlineKeyboardMarkup(new[]
+            {
+                new []
+                {
+                    InlineKeyboardButton.WithCallbackData(Local.Menu[language], Commands.GetStartMenu),
+                },
+                new []
+                {
+                    InlineKeyboardButton.WithCallbackData("Refresh", $"{Commands.RefreshWeather}?{Commands.IsEdit}=true"),
+                }
             });
         }
         public static InlineKeyboardMarkup StatsMarkup()

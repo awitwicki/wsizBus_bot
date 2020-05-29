@@ -59,6 +59,9 @@ namespace wsizbusbot
         public static List<string> BusSchedule = new List<string>() { "bus schedule\n*to", "розклад бусiв\n*до", "harmonogram autobusów\n*do" };
         public static List<string> BusStations = new List<string>() { "WsizBus stations (test version)", "Пшистанкі всізбуса (версія тестова)", "Przystanki WsizBusa (wersja testowa)" };
         public static List<string> Menu = new List<string>() { "Main menu", "Головне меню", "Główne menu" };
+        public static List<string> Weather = new List<string>() { "Weather", "Погода", "Pogoda" };
+        public static List<string> WeatherInRzeszow = new List<string>() { "Weather in Rzeszów", "Погода в Жешуві", "Pogoda w Rzeszowie" };
+        //public static List<string> Settings = new List<string>() { "Settings", "Налаштування", "Ustawienia" }; //For future
         
         public static String Permaban = "Permanent ban";
         
@@ -111,6 +114,7 @@ namespace wsizbusbot
         public static string ChangeLanguage = "ChangeLanguage";
         public static string RefreshStats = "RefreshStats";
         public static string RefreshUsers = "RefreshUsers";
+        public static string RefreshWeather = "RefreshWeather";
         public static string GetStartMenu = "GetStartMenu";
         public static string GetBusStation = "GetBusStation";
         public static string GetMonths = "GetMonths";
@@ -118,6 +122,7 @@ namespace wsizbusbot
         public static string GetScheduleForDay = "GetScheduleForDay";
 
         //ParamNames
+        public static string IsEdit = "IsEdit";
         public static string Month = "Month";
         public static string Direction = "Direction";
         public static string Language = "Language";

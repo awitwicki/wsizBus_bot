@@ -129,11 +129,11 @@ namespace wsizbusbot.Controllers
 
                     //Add Today
                     if (actualSchedule.FirstOrDefault(s => s.DayDateTime.Date == DateTime.Today) != null)
-                        todayAndTomorrowRow.Add(InlineKeyboardButton.WithCallbackData(Local.Today[user.GetLanguage], $"{Commands.GetScheduleForDay}?{Commands.Direction}={directionName},{Commands.Date}={DateTime.Today.Day}"));
+                        todayAndTomorrowRow.Add(InlineKeyboardButton.WithCallbackData(Local.Today[user.GetLanguage], $"{Commands.GetScheduleForDay}?{Commands.Direction}={directionName},{Commands.Date}={DateTime.Today}"));
 
                     //Add Tomorrow
                     if (actualSchedule.FirstOrDefault(s => s.DayDateTime.Date == DateTime.Today.AddDays(1)) != null)
-                        todayAndTomorrowRow.Add(InlineKeyboardButton.WithCallbackData(Local.Tomorrow[user.GetLanguage], $"{Commands.GetScheduleForDay}?{Commands.Direction}={directionName},{Commands.Date}={DateTime.Today.AddDays(1).Day}"));
+                        todayAndTomorrowRow.Add(InlineKeyboardButton.WithCallbackData(Local.Tomorrow[user.GetLanguage], $"{Commands.GetScheduleForDay}?{Commands.Direction}={directionName},{Commands.Date}={DateTime.Today.AddDays(1)}"));
 
                     if (todayAndTomorrowRow.Count > 0)
                         calendarKeyboard.Add(todayAndTomorrowRow);
@@ -191,10 +191,15 @@ namespace wsizbusbot.Controllers
                 {
                     InlineKeyboardButton.WithCallbackData(Local.BusStations[user.GetLanguage], Commands.GetBusStation),
                 },
+                new [] //First row
+                {
+                    InlineKeyboardButton.WithCallbackData(Local.Weather[user.GetLanguage], $"{Commands.RefreshWeather}"),
+                },
+                
                 TemplateModelsBuilder.WaysForBus()
             });
 
-            CoreBot.EditMessageText(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId, text, ParseMode.Markdown, replyMarkup: inlineKeyboard);
+            CoreBot.SendMessage(callbackQuery.Message.Chat.Id, text, ParseMode.Markdown, replyMarkup: inlineKeyboard);
         }
         
         //Bus stations
@@ -265,6 +270,27 @@ namespace wsizbusbot.Controllers
             var inlineKeyboard = new InlineKeyboardMarkup(monthsKeyboard);
 
             CoreBot.EditMessageText(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId, Local.PickMonth[user.GetLanguage], replyMarkup: inlineKeyboard);
+        }
+
+        //Refresh weather
+        public async void RefreshWeather(CallbackQueryEventArgs callbackQueryEventArgs)
+        {
+            var user = ApplicationData.GetUser(callbackQueryEventArgs);
+            var message = callbackQueryEventArgs.CallbackQuery.Message;
+
+            var args = ArgParser.ParseCallbackData(callbackQueryEventArgs.CallbackQuery.Data);
+            bool isEdit = args.ContainsKey(Commands.IsEdit);
+
+            var weather = await WeatherHelper.GetWeather(user.GetLanguage);
+            weather += $"\n`{DateTime.UtcNow.AddHours(2)}`";
+            weather += "\n@wsizBus\\_bot";
+
+            var inlineKeyboard = TemplateModelsBuilder.RefreshWeather(user.GetLanguage);
+
+            if (isEdit)
+                CoreBot.EditMessageText(message.Chat.Id, message.MessageId, weather, ParseMode.Markdown, replyMarkup: inlineKeyboard);
+            else
+                CoreBot.SendMessage(message.Chat.Id, weather, ParseMode.Markdown, replyMarkup: inlineKeyboard);
         }
     }
 }
