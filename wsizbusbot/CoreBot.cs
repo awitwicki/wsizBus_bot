@@ -92,24 +92,26 @@ namespace wsizbusbot
             }
         }
 
-        private static async void BotOnMessageReceived(object sender, MessageEventArgs messageEventArgs)
+        //Handlers
+        private static void BotOnMessageReceived(object sender, MessageEventArgs messageEventArgs)
         {
             var message = messageEventArgs.Message;
 
-            await CoreBot.Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
-
             //Handle stats, access, filters
-            if (!HandleMessage(messageEventArgs))
+            if (!CheckMessage(messageEventArgs))
                 return;
 
-            Invoker(messageEventArgs);
+            if (message.Text != null && message.Text[0] == '/') //handle command
+                Invoker(messageEventArgs);
+            /*else
+                HandleMessage(messageEventArgs); //handle simple message */
         }
         private static async void BotOnCallbackQueryReceived(object sender, CallbackQueryEventArgs callbackQueryEventArgs)
         {
             var callbackQuery = callbackQueryEventArgs.CallbackQuery;
 
             //Handle stats, access, filters
-            if (!HandleMessage(callbackQueryEventArgs : callbackQueryEventArgs))
+            if (!CheckMessage(callbackQueryEventArgs : callbackQueryEventArgs))
                 return;
 
             await Bot.AnswerCallbackQueryAsync(callbackQuery.Id);
@@ -121,7 +123,7 @@ namespace wsizbusbot
             Console.WriteLine($"{methodName} - {callbackQuery.Data}");
         }
 
-        private static void Invoker(MessageEventArgs messageEventArgs = null, CallbackQueryEventArgs callbackQueryEventArgs = null)
+        private static async void Invoker(MessageEventArgs messageEventArgs = null, CallbackQueryEventArgs callbackQueryEventArgs = null)
         {
             var chatId = messageEventArgs != null ? messageEventArgs.Message.Chat.Id : callbackQueryEventArgs.CallbackQuery.Message.Chat.Id;
             var messageId = messageEventArgs != null ? messageEventArgs.Message.MessageId : callbackQueryEventArgs.CallbackQuery.Message.MessageId;
@@ -140,14 +142,29 @@ namespace wsizbusbot
             MethodInfo method = controllerType.GetMethod(methodName);
             if (method != null)
             {
-                if (!CommandController.ValidateMethodAttributes(chatId, method, user))
+                //Check user access by role
+                if (!BaseController.ValidateAccess(method, user))
                     return;
                 try
                 {
-                    if(messageEventArgs != null)
-                        method.Invoke(Activator.CreateInstance(controllerType), parameters: new object[] { messageEventArgs });
+                    //Get and send chatAction from attributes
+                    var chatAction = BaseController.GetChatActionAttributes(method);
+                    if (chatAction.HasValue)
+                        await CoreBot.Bot.SendChatActionAsync(chatId, chatAction.Value);
+
+                    //Cast controller object
+                    var controller = Activator.CreateInstance(controllerType);
+
+                    //Set params
+                    ((BaseController)controller).ChatId = chatId;
+                    ((BaseController)controller).MessageId = messageId;
+                    ((BaseController)controller).User = user;
+
+                    //Invoke method
+                    if (messageEventArgs != null)
+                        method.Invoke(controller, parameters: new object[] { messageEventArgs });
                     else
-                        method.Invoke(Activator.CreateInstance(controllerType), parameters: new object[] { callbackQueryEventArgs });
+                        method.Invoke(controller, parameters: new object[] { callbackQueryEventArgs });
                 }
                 catch (Exception ex)
                 {
@@ -158,11 +175,12 @@ namespace wsizbusbot
             }
             else
             {
+                //Method did not exists
                 SendMessage(Config.AdminId, callbackQueryEventArgs != null? $"Cant find method for: {callbackQueryEventArgs.CallbackQuery.Data}" : $"Cant find method for: {messageEventArgs.Message.Text}");
                 SendMessage(chatId, Local.ErrorMessage[user.GetLanguage], ParseMode.Markdown, replyMarkup: TemplateModelsBuilder.BuildStartMenuMarkup());
             }
         }
-        private static bool HandleMessage(MessageEventArgs messageEventArgs = null, CallbackQueryEventArgs callbackQueryEventArgs = null)
+        private static bool CheckMessage(MessageEventArgs messageEventArgs = null, CallbackQueryEventArgs callbackQueryEventArgs = null)
         {
             if (messageEventArgs == null && callbackQueryEventArgs == null)
                 return false;
@@ -176,13 +194,13 @@ namespace wsizbusbot
             //Store Users
             if (user == null)
             {
-                user = new User
+                user = new CoreBotUser
                 {
                     Id = sender.Id,
                     Name = sender.FirstName + " " + sender.LastName,
                     UserName = sender.Username,
                     ActiveAt = DateTime.UtcNow,
-                    Access = (sender.Id == Config.AdminId) ? Acceess.Admin : Acceess.User
+                    UserAccess = (sender.Id == Config.AdminId) ? UserAccess.Admin : UserAccess.User
                 };
             }
 
@@ -204,7 +222,7 @@ namespace wsizbusbot
             }
 
             //Authorize User
-            if (user.Access == Acceess.Ban)
+            if (user.UserAccess == UserAccess.Ban)
             {
                 SendMessage(chatId, Local.Permaban, ParseMode.Markdown);
                 DeleteMessage(chatId, messageId);
@@ -218,7 +236,6 @@ namespace wsizbusbot
 
             return true;
         }
-
         private static void BotOnReceiveError(object sender, ReceiveErrorEventArgs receiveErrorEventArgs)
         {
             Console.WriteLine("Received error: {0} — {1}",

@@ -5,14 +5,14 @@ using System.Text;
 
 namespace wsizbusbot
 {
-    public class User
+    public class CoreBotUser
     {
         public string Name { get; set; }
         public string UserName { get; set; }
         public DateTime ActiveAt { get; set; }
         public long Id { get; set; }
         public LocalLanguage Language { get; set; }
-        public Acceess Access { get; set; }
+        public UserAccess UserAccess { get; set; }
         public int GetLanguage
         {
             get { return (int)Language; }
@@ -24,7 +24,7 @@ namespace wsizbusbot
         public long ActiveClicks { get; set; }
         public List<long> UserId { get; set; } = new List<long>();
     }
-    public enum Acceess
+    public enum UserAccess
     {
         User = 0,
         Admin = 1,
