@@ -1,4 +1,5 @@
-﻿using OpenWeatherMap;
+﻿using Newtonsoft.Json;
+using OpenWeatherMap;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,89 +12,6 @@ using System.Xml.Serialization;
 
 namespace wsizbusbot
 {
-    public static class FileHelper
-    {
-        //Serialize and write object to xml file
-        public static void SerializeObject<T>(T serializableObject, string fileName)
-        {
-            if (serializableObject == null) { return; }
-
-            try
-            {
-                XmlDocument xmlDocument = new XmlDocument();
-                XmlSerializer serializer = new XmlSerializer(serializableObject.GetType());
-                using (MemoryStream stream = new MemoryStream())
-                {
-                    serializer.Serialize(stream, serializableObject);
-                    stream.Position = 0;
-                    xmlDocument.Load(stream);
-                    xmlDocument.Save(fileName);
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                //Log exception here
-                Console.WriteLine(ex.ToString());
-            }
-        }
-
-        //Read file and deserialize to object
-        public static T DeSerializeObject<T>(string fileName)
-        {
-            if (string.IsNullOrEmpty(fileName)) { return default(T); }
-
-            T objectOut = default(T);
-
-            try
-            {
-                XmlDocument xmlDocument = new XmlDocument();
-                xmlDocument.Load(fileName);
-                string xmlString = xmlDocument.OuterXml;
-
-                using (StringReader read = new StringReader(xmlString))
-                {
-                    Type outType = typeof(T);
-
-                    XmlSerializer serializer = new XmlSerializer(outType);
-                    using (XmlReader reader = new XmlTextReader(read))
-                    {
-                        objectOut = (T)serializer.Deserialize(reader);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                if (ex is FileNotFoundException)
-                    Console.WriteLine($"File {fileName} not found");
-                else
-                    Console.WriteLine(ex.ToString());
-            }
-
-            return objectOut;
-        }
-
-        //Download files from web
-      /*  public static void DownloadFleFromUrl(string url, string fileName)
-        {
-           
-                using (WebClient client = new WebClient())
-                {
-                    client.DownloadFile(new Uri(url), $"{Config.DataPath}{fileName}");
-                }
-                var res = await TrySendMessage(Config.AdminId, "Downloaded", ParseMode.Default);
-
-                if (res != null)
-                    await Bot.EditMessageTextAsync(res.Chat.Id, res.MessageId, res.Text + "\nParsed", ParseMode.Default);
-            }
-            catch (Exception ex)
-            {
-                await TrySendMessage(Config.AdminId, ex.ToString(), ParseMode.Default);
-            }
-            return;
-        }*/
-
-    }
     public static class DateHelper
     {
         public static DateTime? IsDate(string str)
@@ -129,20 +47,33 @@ namespace wsizbusbot
         {
             entities.Add(entity);
         }
+
+        //Serialize and write object to .json file
         public void Save()
         {
-            //Save to file
-            FileHelper.SerializeObject<List<T>>(entities, FilePath);
+            string jsonFile = JsonConvert.SerializeObject(entities);
+
+            File.WriteAllText(FilePath, jsonFile);
         }
+
+        //Read file and deserialize to object
         void LoadFromFile()
         {
-            var file_entities = FileHelper.DeSerializeObject<List<T>>(FilePath);
-            if (file_entities == null)
-                FileHelper.SerializeObject<List<T>>(new List<T>(), FilePath);
-            else
-                entities = file_entities;
+            try
+            {
+                string dataString = File.ReadAllText(FilePath);
+                entities = JsonConvert.DeserializeObject<List<T>>(dataString);
+            }
+            catch (Exception ex)
+            {
+                if (ex is FileNotFoundException)
+                    Console.WriteLine($"File {FilePath} not found.\nCreating a new one...");
+                else
+                    Console.WriteLine(ex.ToString());
+            }
+            entities = new List<T>();
         }
-    } 
+    }
     public class ArgParser
     {
         public static Dictionary<string, string> ParseCallbackData(string query)
@@ -210,7 +141,7 @@ namespace wsizbusbot
         }
         public static void GetDataTableFromExcel(string path, bool hasHeader = true)
         {
-           var start = DateTime.Now;
+            var start = DateTime.Now;
 
             using (var pck = new OfficeOpenXml.ExcelPackage())
             {
@@ -328,7 +259,7 @@ namespace wsizbusbot
                 var responseUa = await Client.Forecast.GetByName("Rzeszow", language: OpenWeatherMapLanguage.UA);
                 var responsePl = await Client.Forecast.GetByName("Rzeszow", language: OpenWeatherMapLanguage.PL);
 
-                WeatherForecast.Forecasts = new List<List<ForecastTime>>{ responseEn.Forecast.ToList(), responseUa.Forecast.ToList(), responsePl.Forecast.ToList() };
+                WeatherForecast.Forecasts = new List<List<ForecastTime>> { responseEn.Forecast.ToList(), responseUa.Forecast.ToList(), responsePl.Forecast.ToList() };
 
                 WeatherForecast.Forecasts.ForEach(f => f.ForEach(a => a.Symbol.Name = char.ToUpper(a.Symbol.Name[0]) + a.Symbol.Name.Substring(1)));
                 WeatherForecast.Forecasts.ForEach(f => f.ForEach(a => a.From = a.From.AddHours(2)));
