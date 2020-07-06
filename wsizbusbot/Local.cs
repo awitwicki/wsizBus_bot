@@ -39,7 +39,7 @@ namespace wsizbusbot
              { PointNames.CTIR, "Ctir"},
         };
 
-        public static List<string> StartString = new List<string>() { "Hi! I know where and whe will be wsizbus, select direction\n\n", "Привіт, Я знаю де і коли буде всізобус, щоб дізнатися - обери куди ти хочеш доїхати\n\n", "Cześć, wiem kiedy i gdzie będzie jechał wsizbus, najpierw wybierz kierunek\n\n" };
+        public static List<string> StartString = new List<string>() { "Hi! I know where and when will be wsizbus, select direction\n\n", "Привіт, Я знаю де і коли буде всізобус, щоб дізнатися - обери куди ти хочеш доїхати\n\n", "Cześć, wiem kiedy i gdzie będzie jechał wsizbus, najpierw wybierz kierunek\n\n" };
         public static List<string> Today = new List<string>() { "Today", "Сьогодні", "Dziś" };
         public static List<string> ReturnBack = new List<string>() { "Back", "Назад", "Powrót" };
         public static List<string> Tomorrow = new List<string>() { "Tomorrow", "Завтра", "Jutro" };

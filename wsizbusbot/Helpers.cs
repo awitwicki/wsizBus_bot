@@ -210,7 +210,7 @@ namespace wsizbusbot
         }
         public static void GetDataTableFromExcel(string path, bool hasHeader = true)
         {
-            var start = DateTime.Now;
+           var start = DateTime.Now;
 
             using (var pck = new OfficeOpenXml.ExcelPackage())
             {
