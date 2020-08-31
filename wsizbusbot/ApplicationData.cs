@@ -9,7 +9,7 @@ namespace wsizbusbot
 {
     public static class ApplicationData
     {
-        public static string BotVersion = "2.4 Beta 06072020";
+        public static string BotVersion = "2.5 Beta 31082020";
 
         public static FileStorageManager<CoreBotUser> Users { get; set; } = new FileStorageManager<CoreBotUser>(Config.UsersFilePath);
         public static FileStorageManager<Stats> Stats { get; set; } = new FileStorageManager<Stats>(Config.StatsFilePath);
@@ -32,7 +32,7 @@ namespace wsizbusbot
                 Users.Add(user);
 
                 Console.WriteLine($"New User {user.Name} {user.UserName}");
-                CoreBot.Bot.SendTextMessageAsync(Config.AdminId, $"New User {user.Name} {user.UserName}");
+                //bot.SendTextMessageAsync(Config.AdminId, $"New User {user.Name} {user.UserName}");
             }
             else
             {

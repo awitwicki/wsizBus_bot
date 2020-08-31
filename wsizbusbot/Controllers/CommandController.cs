@@ -21,7 +21,7 @@ namespace wsizbusbot.Controllers
 
             var inlineKeyboard = TemplateModelsBuilder.BuildStartMenuMarkup();
 
-            CoreBot.SendMessage(ChatId, messageText, ParseMode.Markdown, replyMarkup: inlineKeyboard);
+            SendMessageAsync(ChatId, messageText, ParseMode.Markdown, replyMarkup: inlineKeyboard);
         }
         
         public void Me(MessageEventArgs messageEventArgs)
@@ -37,7 +37,7 @@ namespace wsizbusbot.Controllers
                 info_data += "\nYou are Admin";
             }
 
-            CoreBot.SendMessage(ChatId, info_data);
+            SendMessageAsync(ChatId, info_data);
         }
 
         [Role(UserAccess.Admin)]
@@ -59,7 +59,7 @@ namespace wsizbusbot.Controllers
 
             var inlineKeyboard = TemplateModelsBuilder.StatsMarkup();
 
-            CoreBot.SendMessage(ChatId, stats, ParseMode.Markdown, replyMarkup: inlineKeyboard);
+            SendMessageAsync(ChatId, stats, ParseMode.Markdown, replyMarkup: inlineKeyboard);
         }
         
         [Role(UserAccess.Admin)]
@@ -68,7 +68,7 @@ namespace wsizbusbot.Controllers
             var users = TemplateModelsBuilder.GetTopUsers();
             var inlineKeyboard = TemplateModelsBuilder.UsersStatsMarkup();
 
-            CoreBot.SendMessage(ChatId, users, ParseMode.Markdown, replyMarkup: inlineKeyboard);
+            SendMessageAsync(ChatId, users, ParseMode.Markdown, replyMarkup: inlineKeyboard);
         }
         
         [Role(UserAccess.Admin)]
@@ -79,15 +79,15 @@ namespace wsizbusbot.Controllers
             for (int i = 0; i < ApplicationData.Users.Set().Count; i++)
             {
                 var tempUser = ApplicationData.Users.Set()[i];
-                users += $"{i} {Local.LangIcon[tempUser.GetLanguage]} {tempUser.Name} `{tempUser.Id}` @{(tempUser.UserName != null ? tempUser.UserName.Replace("_", "\\_") : "hidden")}  {tempUser.ActiveAt.ToShortDateString()}\n";
+                users += $"{i} {Local.LangIcon[tempUser.GetLanguage]} {tempUser.Name} `{tempUser.Id}` @{(tempUser.UserName != null ? tempUser.UserName : "hidden")}  {tempUser.ActiveAt.ToShortDateString()}\n";
                 if (i % 50 == 0 && i > 0)
                 {
-                    CoreBot.SendMessage(ChatId, users, ParseMode.Markdown);
+                    SendMessageAsync(ChatId, users, ParseMode.Markdown);
                     users = ApplicationData.Users.Set().Count > 0 ? "Users list:\n" : "Users list is empty";
                 }
             }
             if (users != (ApplicationData.Users.Set().Count > 0 ? "Users list:\n" : "Users list is empty"))
-                CoreBot.SendMessage(ChatId, users, ParseMode.Markdown);
+                SendMessageAsync(ChatId, users, ParseMode.Markdown);
         }
         
         [Role(UserAccess.Admin)]
@@ -96,9 +96,9 @@ namespace wsizbusbot.Controllers
             string users = ApplicationData.Users.Set().Count(u => u.UserAccess == UserAccess.Ban) == 0 ? "Ban list is empty" : "";
             foreach (var user_id in ApplicationData.Users.Set().Where(u => u.UserAccess == UserAccess.Ban).ToList())
             {
-                users += $"`{user_id.Id}` {user_id.Name.Replace("_", "\\_")} @{(user_id.UserName != null ? user_id.UserName.Replace("_", "\\_") : "hidden")}\n";
+                users += $"`{user_id.Id}` {user_id.Name} @{(user_id.UserName != null ? user_id.UserName : "hidden")}\n";
             }
-            CoreBot.SendMessage(ChatId, users, ParseMode.Markdown);
+            SendMessageAsync(ChatId, users, ParseMode.Markdown);
         }
         
         [Role(UserAccess.Admin)]
@@ -125,22 +125,22 @@ namespace wsizbusbot.Controllers
 
                             //Save to file
                             ApplicationData.SaveUsers();
-                            CoreBot.SendMessage(ChatId, $"User {(usr_.UserName != null ? "@" + usr_.UserName.Replace("_", "\\_") : usr_.Id.ToString())} access is changed to `{usr_.UserAccess}`", ParseMode.Markdown);
+                            SendMessageAsync(ChatId, $"User {(usr_.UserName != null ? "@" + usr_.UserName : usr_.Id.ToString())} access is changed to `{usr_.UserAccess}`", ParseMode.Markdown);
                         }
                         else
                         {
-                            CoreBot.SendMessage(ChatId, $"There is no users with id `{usrId}`", ParseMode.Markdown);
+                            SendMessageAsync(ChatId, $"There is no users with id `{usrId}`", ParseMode.Markdown);
                         }
                     }
                     catch (Exception ex)
                     {
-                        CoreBot.SendMessage(ChatId, $"Error: {ex}", ParseMode.Markdown);
+                        SendMessageAsync(ChatId, $"Error: {ex}", ParseMode.Markdown);
                     }
                 }
             }
             else
             {
-                CoreBot.SendMessage(ChatId, $"There is no users id's", ParseMode.Markdown);
+                SendMessageAsync(ChatId, $"There is no users id's", ParseMode.Markdown);
             }
         }
         
@@ -159,15 +159,15 @@ namespace wsizbusbot.Controllers
                     foreach (var tempUser in ApplicationData.Users.Set())
                     {
                         Console.WriteLine($"{tempUser.Id} {tempUser.Name} {tempUser.UserName}");
-                        CoreBot.SendMessage(tempUser.Id, text, ParseMode.Markdown);
+                        SendMessageAsync(tempUser.Id, text, ParseMode.Markdown);
                         Task.Delay(200);
                     }
 
-                    CoreBot.SendMessage(ChatId, "Success", ParseMode.Markdown);
+                    SendMessageAsync(ChatId, "Success", ParseMode.Markdown);
                 }
                 catch
                 {
-                    CoreBot.SendMessage(ChatId, "Error", ParseMode.Markdown);
+                    SendMessageAsync(ChatId, "Error", ParseMode.Markdown);
                 }
             }
         }
@@ -183,11 +183,11 @@ namespace wsizbusbot.Controllers
                 try
                 {
                     var text = message.Text.Replace("/send_test ", "");
-                    CoreBot.SendMessage(User.Id, text, ParseMode.Markdown);
+                    SendMessageAsync(User.Id, text, ParseMode.Markdown);
                 }
                 catch
                 {
-                    CoreBot.SendMessage(ChatId, "Error", ParseMode.Markdown);
+                    SendMessageAsync(ChatId, "Error", ParseMode.Markdown);
                 }
             }
         }
@@ -199,24 +199,24 @@ namespace wsizbusbot.Controllers
             using (FileStream fs = System.IO.File.OpenRead(Config.UsersFilePath))
             {
                 InputOnlineFile inputOnlineFile = new InputOnlineFile(fs, Config.UsersFilePath);
-                await CoreBot.Bot.SendDocumentAsync(ChatId, inputOnlineFile);
+                await Bot.SendDocumentAsync(ChatId, inputOnlineFile);
             }
 
             using (FileStream fs = System.IO.File.OpenRead(Config.StatsFilePath))
             {
                 InputOnlineFile inputOnlineFile = new InputOnlineFile(fs, Config.StatsFilePath);
-                await CoreBot.Bot.SendDocumentAsync(ChatId, inputOnlineFile);
+                await Bot.SendDocumentAsync(ChatId, inputOnlineFile);
             }
         }
 
         public async void Weather(MessageEventArgs messageEventArgs)
         {
             var weather = await WeatherHelper.GetWeather(User.GetLanguage);
-            weather += "\n@wsizBus\\_bot";
+            weather += "\n@wsizBus_bot";
 
             var inlineKeyboard = TemplateModelsBuilder.RefreshWeather(User.GetLanguage);
 
-            CoreBot.SendMessage(ChatId, weather, ParseMode.Markdown, replyMarkup: inlineKeyboard);
+            SendMessageAsync(ChatId, weather, ParseMode.Markdown, replyMarkup: inlineKeyboard);
         }
 
         [Role(UserAccess.Admin)]
@@ -227,15 +227,15 @@ namespace wsizbusbot.Controllers
                 $"/help - help\n" +
                 $"/stats - bot stats\n" +
                 $"/users - top 7 days users list\n" +
-                $"/users\\_all - all users list\n" +
-                $"/ban\\_list - banned users list\n" +
+                $"/users_all - all users list\n" +
+                $"/ban_list - banned users list\n" +
                 $"/ban [user id] - bann\\unban user by id\n" +
-                $"/send\\_all [message text] - send text to all users\n" +
-                $"/send\\_test [message text] - send text to you\n" +
-                $"/get\\_data - send data files to you\n" +
+                $"/send_all [message text] - send text to all users\n" +
+                $"/send_test [message text] - send text to you\n" +
+                $"/get_data - send data files to you\n" +
                 $"/weather - get weather forecast";
 
-            CoreBot.SendMessage(ChatId, help_string, ParseMode.Markdown);
+            SendMessageAsync(ChatId, help_string, ParseMode.Markdown);
         }
     }
 }

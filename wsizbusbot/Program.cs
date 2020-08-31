@@ -23,24 +23,16 @@ namespace wsizbusbot
         
         static void Main(string[] args)
         {
-            Directory.CreateDirectory(Config.DataPath);
-
             ApplicationData.StopMode = !ScheduleHelper.ParseFiles().Result;
 
-            CoreBot.StartReceiving();
-            
-            var me = CoreBot.Bot.GetMeAsync().Result;
-            Console.Title = me.Username;
+            var corebot = new CoreBot(Config.TelegramAccessToken);
 
-            CoreBot.SendMessage(Config.AdminId, $"WsizBusBot is started\nBot version `{ApplicationData.BotVersion}.`", ParseMode.Markdown);
 
             if (ApplicationData.StopMode)
-                CoreBot.SendMessage(Config.AdminId, "Error with file parsing", ParseMode.Markdown);
+                corebot.SendMessageAsync(Config.AdminId, "Error with file parsing", ParseMode.Markdown);
 
             while (true) { }
             Console.ReadLine();
-
-            CoreBot.Bot.StopReceiving();
         }
     }
 }

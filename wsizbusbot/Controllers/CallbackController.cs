@@ -14,8 +14,6 @@ namespace wsizbusbot.Controllers
         //Change language
         public void ChangeLanguage(CallbackQueryEventArgs callbackQueryEventArgs)
         {
-            var callbackQuery = callbackQueryEventArgs.CallbackQuery;
-
             var args = ArgParser.ParseCallbackData(callbackQueryEventArgs.CallbackQuery.Data);
 
             var lang = args.GetValueOrDefault(Commands.Language);
@@ -36,15 +34,13 @@ namespace wsizbusbot.Controllers
             string messageText = Local.StartString[User.GetLanguage] + $"Bot version `{ApplicationData.BotVersion}`";
             var inlineKeyboard = TemplateModelsBuilder.BuildStartMenuMarkup();
 
-            CoreBot.EditMessageText(ChatId, MessageId, messageText, replyMarkup: inlineKeyboard, parseMode: ParseMode.Markdown);
+            EditMessageTextAsync(ChatId, MessageId, messageText, replyMarkup: inlineKeyboard, parseMode: ParseMode.Markdown);
         }
 
         //Refresh stats
         [Role(UserAccess.Admin)]
         public void RefreshStats(CallbackQueryEventArgs callbackQueryEventArgs)
         {
-            var callbackQuery = callbackQueryEventArgs.CallbackQuery;
-
             string stats = $"*Monthly Users:* `{ApplicationData.Users.Set().Count(u => u.ActiveAt > DateTime.UtcNow.AddDays(-30))}`\n";
             stats += $"*Weekly Users:* `{ApplicationData.Users.Set().Count(u => u.ActiveAt > DateTime.UtcNow.AddDays(-7))}`\n\n";
 
@@ -63,38 +59,32 @@ namespace wsizbusbot.Controllers
 
             var inlineKeyboard = TemplateModelsBuilder.StatsMarkup();
 
-            CoreBot.EditMessageText(ChatId, MessageId, stats, ParseMode.Markdown, replyMarkup: inlineKeyboard);
+            EditMessageTextAsync(ChatId, MessageId, stats, ParseMode.Markdown, replyMarkup: inlineKeyboard);
         }
 
         //Refresh Users
         [Role(UserAccess.Admin)]
         public void RefreshUsers(CallbackQueryEventArgs callbackQueryEventArgs)
         {
-            var callbackQuery = callbackQueryEventArgs.CallbackQuery;
-
             var Users = TemplateModelsBuilder.GetTopUsers();
             Users += $"\n`{DateTime.UtcNow}`";
 
             var inlineKeyboard = TemplateModelsBuilder.UsersStatsMarkup();
 
-            CoreBot.EditMessageText(ChatId, MessageId, Users, ParseMode.Markdown, replyMarkup: inlineKeyboard);
+            EditMessageTextAsync(ChatId, MessageId, Users, ParseMode.Markdown, replyMarkup: inlineKeyboard);
         }
 
         //Start menu
         public void GetStartMenu(CallbackQueryEventArgs callbackQueryEventArgs)
         {
-            var callbackQuery = callbackQueryEventArgs.CallbackQuery;
-
             var inlineKeyboard = TemplateModelsBuilder.BuildStartMenuMarkup();
 
-            CoreBot.EditMessageText(ChatId, MessageId, Local.StartString[User.GetLanguage], replyMarkup: inlineKeyboard);
+            EditMessageTextAsync(ChatId, MessageId, Local.StartString[User.GetLanguage], replyMarkup: inlineKeyboard);
         }
 
         //Get schedule for month
         public void GetScheduleForMonth(CallbackQueryEventArgs callbackQueryEventArgs)
         {
-            var callbackQuery = callbackQueryEventArgs.CallbackQuery;
-
             var args = ArgParser.ParseCallbackData(callbackQueryEventArgs.CallbackQuery.Data);
 
             var direction = args.GetValueOrDefault(Commands.Direction);
@@ -148,7 +138,7 @@ namespace wsizbusbot.Controllers
 
                 var inlineKeyboard = new InlineKeyboardMarkup(calendarKeyboard);
                 var keyboardText = (actualSchedule.Count > 0) ? $"{Local.PickDate[User.GetLanguage]} ({Local.GetMonthNames(User.Language)[activeDate.Month]})" : $"{Local.NoDataForMonth[User.GetLanguage]}(*{Local.GetMonthNames(User.Language)[activeDate.Month]}*) {Local.PickAnother[User.GetLanguage]}";
-                CoreBot.EditMessageText(ChatId, MessageId, keyboardText, ParseMode.Markdown, replyMarkup: inlineKeyboard);
+                EditMessageTextAsync(ChatId, MessageId, keyboardText, ParseMode.Markdown, replyMarkup: inlineKeyboard);
             }
             //If no data for this month, find other months
             else
@@ -159,7 +149,7 @@ namespace wsizbusbot.Controllers
                 }
                 var inlineKeyboard = new InlineKeyboardMarkup(calendarKeyboard);
                 var keyboardText = $"{Local.NoDataForMonth[User.GetLanguage]} (*{Local.GetMonthNames(User.Language)[activeDate.Month]}*){Local.PickAnother[User.GetLanguage]}";
-                CoreBot.EditMessageText(ChatId, MessageId, keyboardText, ParseMode.Markdown, replyMarkup: inlineKeyboard);
+                EditMessageTextAsync(ChatId, MessageId, keyboardText, ParseMode.Markdown, replyMarkup: inlineKeyboard);
             }
         }
 
@@ -191,14 +181,12 @@ namespace wsizbusbot.Controllers
                 TemplateModelsBuilder.WaysForBus()
             });
 
-            CoreBot.SendMessage(ChatId, text, ParseMode.Markdown, replyMarkup: inlineKeyboard);
+            SendMessageAsync(ChatId, text, ParseMode.Markdown, replyMarkup: inlineKeyboard);
         }
         
         //Bus stations
         public void GetBusStation(CallbackQueryEventArgs callbackQueryEventArgs)
         {
-            var callbackQuery = callbackQueryEventArgs.CallbackQuery;
-
             var args = ArgParser.ParseCallbackData(callbackQueryEventArgs.CallbackQuery.Data);
 
             var busStation = args.GetValueOrDefault(Commands.BusStation);
@@ -207,7 +195,7 @@ namespace wsizbusbot.Controllers
             if (busStation == null)
             {
                 var stationsInline = TemplateModelsBuilder.BusStations();
-                CoreBot.EditMessageText(ChatId, MessageId, Local.PickBusStation[User.GetLanguage], ParseMode.Markdown, replyMarkup: stationsInline);
+                EditMessageTextAsync(ChatId, MessageId, Local.PickBusStation[User.GetLanguage], ParseMode.Markdown, replyMarkup: stationsInline);
             }
             //Get station info
             else
@@ -228,19 +216,17 @@ namespace wsizbusbot.Controllers
                     TemplateModelsBuilder.WaysForBus()
                 });
 
-                CoreBot.DeleteMessage(ChatId, MessageId);
+                DeleteMessageAsync(ChatId, MessageId);
 
-                CoreBot.SendMessage(ChatId, Local.BusPointNames[station], ParseMode.Markdown);
-                CoreBot.SendLocation(ChatId, Local.BusPoints[station][0], Local.BusPoints[station][1]);
-                CoreBot.SendMessage(ChatId, Local.ReturnBack[User.GetLanguage], ParseMode.Markdown, replyMarkup: inlineKeyboard);
+                SendMessageAsync(ChatId, Local.BusPointNames[station], ParseMode.Markdown);
+                SendLocationAsync(ChatId, Local.BusPoints[station][0], Local.BusPoints[station][1]);
+                SendMessageAsync(ChatId, Local.ReturnBack[User.GetLanguage], ParseMode.Markdown, replyMarkup: inlineKeyboard);
             }
         }
 
         //Avaliable months
         public void GetMonths(CallbackQueryEventArgs callbackQueryEventArgs)
         {
-            var callbackQuery = callbackQueryEventArgs.CallbackQuery;
-
             var args = ArgParser.ParseCallbackData(callbackQueryEventArgs.CallbackQuery.Data);
 
             var months = ApplicationData.Schedule.avaliableMonths;
@@ -259,27 +245,25 @@ namespace wsizbusbot.Controllers
 
             var inlineKeyboard = new InlineKeyboardMarkup(monthsKeyboard);
 
-            CoreBot.EditMessageText(ChatId, MessageId, Local.PickMonth[User.GetLanguage], replyMarkup: inlineKeyboard);
+            EditMessageTextAsync(ChatId, MessageId, Local.PickMonth[User.GetLanguage], replyMarkup: inlineKeyboard);
         }
 
         //Refresh weather
         public async void RefreshWeather(CallbackQueryEventArgs callbackQueryEventArgs)
         {
-            var message = callbackQueryEventArgs.CallbackQuery.Message;
-
             var args = ArgParser.ParseCallbackData(callbackQueryEventArgs.CallbackQuery.Data);
             bool isEdit = args.ContainsKey(Commands.IsEdit);
 
             var weather = await WeatherHelper.GetWeather(User.GetLanguage);
             weather += $"\n`{DateTime.UtcNow.AddHours(2)}`";
-            weather += "\n@wsizBus\\_bot";
+            weather += "\n@wsizBus_bot";
 
             var inlineKeyboard = TemplateModelsBuilder.RefreshWeather(User.GetLanguage);
 
             if (isEdit)
-                CoreBot.EditMessageText(ChatId, MessageId, weather, ParseMode.Markdown, replyMarkup: inlineKeyboard);
+                EditMessageTextAsync(ChatId, MessageId, weather, ParseMode.Markdown, replyMarkup: inlineKeyboard);
             else
-                CoreBot.SendMessage(ChatId, weather, ParseMode.Markdown, replyMarkup: inlineKeyboard);
+                SendMessageAsync(ChatId, weather, ParseMode.Markdown, replyMarkup: inlineKeyboard);
         }
     }
 }

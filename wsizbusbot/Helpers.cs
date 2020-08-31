@@ -70,8 +70,9 @@ namespace wsizbusbot
                     Console.WriteLine($"File {FilePath} not found.\nCreating a new one...");
                 else
                     Console.WriteLine(ex.ToString());
+                
+                entities = new List<T>();
             }
-            entities = new List<T>();
         }
     }
     public class ArgParser
@@ -239,7 +240,7 @@ namespace wsizbusbot
                     harmonogram += "\n";
                 }
             }
-            harmonogram += "\n@wsizBus\\_bot";
+            harmonogram += "\n@wsizBus_bot";
             return harmonogram;
         }
     }
