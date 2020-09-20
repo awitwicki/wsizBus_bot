@@ -1,6 +1,8 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -23,25 +25,43 @@ namespace wsizbusbot
 
         public CoreBot(string accessToken)
         {
+            Log.Information("Starting WsizBusBot");
+
             Directory.CreateDirectory(Config.DataPath);
+            Directory.CreateDirectory(Config.LogsPath);
 
             Bot = new TelegramBotClient(Config.TelegramAccessToken);
 
             var me = Bot.GetMeAsync().Result;
-            Console.Title = me.Username;
 
             Bot.OnMessage += BotOnMessageReceived;
+            Bot.OnMessage += OnMessage;
             Bot.OnCallbackQuery += BotOnCallbackQueryReceived;
             Bot.OnReceiveError += BotOnReceiveError;
 
 
             Bot.StartReceiving(Array.Empty<UpdateType>());
-            Console.WriteLine($"Start listening for @{me.Username}");
+            Log.Information($"Start listening for @{me.Username}");
 
             SendMessageAsync(Config.AdminId, $"WsizBusBot is started\nBot version `{ApplicationData.BotVersion}.`", ParseMode.Markdown);
         }
 
-        ~CoreBot() => Bot.StopReceiving();
+        ~CoreBot()
+        {
+            Log.Warning("Turning off");
+            Bot.StopReceiving();
+            Log.CloseAndFlush();
+        }
+
+        public void WaitSync()
+        {
+            Task.Delay(-1); //linux service lock
+            Task.Delay(Int32.MaxValue).Wait(); //windows program lock
+        }
+        public void WaitSync(CancellationToken cancellationToken)
+        {
+            Task.Delay(-1, cancellationToken);
+        }
 
         //Save Bot methods
 
@@ -56,7 +76,7 @@ namespace wsizbusbot
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                Log.Error(ex, "Send message error");
             }
         }
         
@@ -68,11 +88,15 @@ namespace wsizbusbot
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                Log.Error(ex, "Delete message error");
             }
         }
 
         //Handlers
+        private async void OnMessage(object sender, MessageEventArgs messageEventArgs)
+        {
+            "INSERT wsizbusbot,t1=calls call=1".RunInfluxDB();
+        }
         private async void BotOnMessageReceived(object sender, MessageEventArgs messageEventArgs)
         {
             var message = messageEventArgs.Message;
@@ -90,6 +114,8 @@ namespace wsizbusbot
         }
         private async void BotOnCallbackQueryReceived(object sender, CallbackQueryEventArgs callbackQueryEventArgs)
         {
+            "INSERT wsizbusbot,t2=callbacks callback=1".RunInfluxDB();
+
             var callbackQuery = callbackQueryEventArgs.CallbackQuery;
 
             //Handle stats, access, filters
@@ -155,6 +181,7 @@ namespace wsizbusbot
                 }
                 catch (Exception ex)
                 {
+                    Log.Error(ex, "Invoker error");
                     SendMessageAsync(Config.AdminId, ex.ToString());
                     SendMessageAsync(Config.AdminId, callbackQueryEventArgs?.CallbackQuery.Data ?? "F");
                 }
@@ -246,8 +273,10 @@ namespace wsizbusbot
         
         private void BotOnReceiveError(object sender, ReceiveErrorEventArgs receiveErrorEventArgs)
         {
+            "INSERT wsizbusbot,t2=errors error=1".RunInfluxDB();
+
             //ToDo logging to file
-            Console.WriteLine("Received error: {0} — {1}", receiveErrorEventArgs.ApiRequestException.ErrorCode, receiveErrorEventArgs.ApiRequestException.Message);
+            Log.Error("Received error: {0} — {1}", receiveErrorEventArgs.ApiRequestException.ErrorCode, receiveErrorEventArgs.ApiRequestException.Message);
             SendMessageAsync(Config.AdminId, $"Error {receiveErrorEventArgs.ApiRequestException.ErrorCode} : {receiveErrorEventArgs.ApiRequestException.Message}");
         }
     }

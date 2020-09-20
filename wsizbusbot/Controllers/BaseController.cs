@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Reflection;
@@ -93,7 +94,7 @@ namespace wsizbusbot.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                Log.Error(ex, "SendMessageAsync error");
             }
         }
         public async void EditMessageTextAsync(ChatId chatId, int messageId, string text, ParseMode parseMode = ParseMode.Default, bool disableWebPagePreview = false, InlineKeyboardMarkup replyMarkup = null, CancellationToken cancellationToken = default)
@@ -108,7 +109,7 @@ namespace wsizbusbot.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                Log.Error(ex, "EditMessageTextAsync error");
             }
         }
         public async void SendLocationAsync(ChatId chatId, float latitude, float longitude, int livePeriod = 0, bool disableNotification = false, int replyToMessageId = 0, IReplyMarkup replyMarkup = null, CancellationToken cancellationToken = default)
@@ -119,18 +120,7 @@ namespace wsizbusbot.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
-            }
-        }
-        public async void EditMessageReplyMarkupAsync(ChatId chatId, int messageId, InlineKeyboardMarkup replyMarkup = null, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                await Bot.EditMessageReplyMarkupAsync(chatId, messageId, replyMarkup, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
+                Log.Error(ex, "SendLocationAsync error");
             }
         }
         public async void DeleteMessageAsync(ChatId chatId, int messageId, CancellationToken cancellationToken = default)
@@ -141,7 +131,7 @@ namespace wsizbusbot.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                Log.Error(ex, "DeleteMessageAsync error");
             }
         }
     }

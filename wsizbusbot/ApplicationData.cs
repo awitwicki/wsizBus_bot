@@ -9,7 +9,7 @@ namespace wsizbusbot
 {
     public static class ApplicationData
     {
-        public static string BotVersion = "2.5 Beta 31082020";
+        public static string BotVersion = "2.8 Beta 20092020";
 
         public static FileStorageManager<CoreBotUser> Users { get; set; } = new FileStorageManager<CoreBotUser>(Config.UsersFilePath);
         public static FileStorageManager<Stats> Stats { get; set; } = new FileStorageManager<Stats>(Config.StatsFilePath);
@@ -31,7 +31,7 @@ namespace wsizbusbot
                 //If new User then add
                 Users.Add(user);
 
-                Console.WriteLine($"New User {user.Name} {user.UserName}");
+                Serilog.Log.Information($"New User {user.Name} {user.UserName}");
                 //bot.SendTextMessageAsync(Config.AdminId, $"New User {user.Name} {user.UserName}");
             }
             else

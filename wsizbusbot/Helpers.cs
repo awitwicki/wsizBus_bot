@@ -1,7 +1,9 @@
 ﻿using Newtonsoft.Json;
+using OfficeOpenXml.FormulaParsing.Excel.Functions.Math;
 using OpenWeatherMap;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -67,9 +69,9 @@ namespace wsizbusbot
             catch (Exception ex)
             {
                 if (ex is FileNotFoundException)
-                    Console.WriteLine($"File {FilePath} not found.\nCreating a new one...");
+                    Serilog.Log.Information($"File {FilePath} not found.\nCreating a new one...");
                 else
-                    Console.WriteLine(ex.ToString());
+                    Serilog.Log.Error(ex, "Unhandled exception");
                 
                 entities = new List<T>();
             }
@@ -135,8 +137,9 @@ namespace wsizbusbot
 
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                Serilog.Log.Error(ex, "Cant parse .xml document");
                 return false;
             }
         }
@@ -187,7 +190,7 @@ namespace wsizbusbot
                     }
                 }
             }
-            Console.WriteLine($"{path} is parsed in {DateTime.Now - start}ms");
+            Serilog.Log.Information($"{path} is parsed in {DateTime.Now - start}ms");
         }
 
         public static string GenerateSchedule(DateTime date, Way direction, int lang)
@@ -320,6 +323,15 @@ namespace wsizbusbot
             {}
 
             return result;
+        }
+    }
+
+    public static class ShellHelper
+    {
+        public static void RunInfluxDB(this string cmd)
+        {
+            if (Config.UseInfluxDB)
+                Process.Start("/usr/bin/influx", $"-username {Config.InfluxDBUserName} -password \"{Config.InfluxDBPassword}\" -database \"{Config.InfluxDBDbName}\" -execute \"{cmd}\"");
         }
     }
 }

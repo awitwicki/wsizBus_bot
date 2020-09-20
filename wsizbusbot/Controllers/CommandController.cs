@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -158,7 +159,7 @@ namespace wsizbusbot.Controllers
 
                     foreach (var tempUser in ApplicationData.Users.Set())
                     {
-                        Console.WriteLine($"{tempUser.Id} {tempUser.Name} {tempUser.UserName}");
+                        Log.Information($"{tempUser.Id} {tempUser.Name} {tempUser.UserName}");
                         SendMessageAsync(tempUser.Id, text, ParseMode.Markdown);
                         Task.Delay(200);
                     }
@@ -209,6 +210,22 @@ namespace wsizbusbot.Controllers
             }
         }
 
+        [Role(UserAccess.Admin)]
+        [MessageReaction(ChatAction.UploadDocument)]
+        public async void Get_logs(MessageEventArgs messageEventArgs)
+        {
+            string[] logFiles = Directory.GetFiles(Config.LogsPath);
+
+            foreach (var filename in logFiles)
+            {
+                using (FileStream fs = System.IO.File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                {
+                    InputOnlineFile inputOnlineFile = new InputOnlineFile(fs, filename);
+                    await Bot.SendDocumentAsync(ChatId, inputOnlineFile);
+                }
+            }
+        }
+
         public async void Weather(MessageEventArgs messageEventArgs)
         {
             var weather = await WeatherHelper.GetWeather(User.GetLanguage);
@@ -232,7 +249,8 @@ namespace wsizbusbot.Controllers
                 $"/ban [user id] - bann\\unban user by id\n" +
                 $"/send_all [message text] - send text to all users\n" +
                 $"/send_test [message text] - send text to you\n" +
-                $"/get_data - send data files to you\n" +
+                $"/get_data - send data files\n" +
+                $"/get_logs - send all .log files\n" +
                 $"/weather - get weather forecast";
 
             SendMessageAsync(ChatId, help_string, ParseMode.Markdown);
