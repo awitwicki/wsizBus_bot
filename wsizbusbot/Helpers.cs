@@ -195,7 +195,7 @@ namespace wsizbusbot
 
         public static string GenerateSchedule(DateTime date, Way direction, int lang)
         {
-            string retString = Local.NoDataForMonth[lang];
+            string retString = Local.NoDataForDate[lang];
 
             string directionName = direction == Way.ToCTIR ? Local.ToCtir[lang] : Local.ToRzeszow[lang];
 

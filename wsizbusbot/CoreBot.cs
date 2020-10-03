@@ -209,7 +209,10 @@ namespace wsizbusbot
                 //Cant method did not exists
                 InfluxDBLiteClient.Query("bots,botname=wsizbusbot,actiontype=backenderror action=true");
                 SendMessageAsync(Config.AdminId, callbackQueryEventArgs != null ? $"Cant find method for: {callbackQueryEventArgs.CallbackQuery.Data}" : $"Cant find method for: {messageEventArgs.Message.Text}");
-                SendMessageAsync(chatId, $"Command `{methodName}` not exists", ParseMode.Markdown);
+                SendMessageAsync(chatId, Local.ErrorMessage[user.GetLanguage], ParseMode.Markdown, replyMarkup: TemplateModelsBuilder.BuildStartMenuMarkup());
+
+                //todo
+                //delete callback keyboard under the message?
             }
         }
         private bool CheckMessage(MessageEventArgs messageEventArgs = null, CallbackQueryEventArgs callbackQueryEventArgs = null)

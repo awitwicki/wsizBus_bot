@@ -50,9 +50,10 @@ namespace wsizbusbot
         public static List<string> PickBusStation = new List<string>() { "Pick the bus station", "Обери пшистанек", "Wybierz Przystanek" };
         public static List<string> AnotherMonth = new List<string>() { "Another month", "Інший місяць", "Inny miesiąc" };
         public static List<string> YouAreWelcome = new List<string>() { "You are welcome", "Запрашами ще", "Zapraszamy ponownie" };
-        public static List<string> ErrorMessage = new List<string>() { "Some error o.O\nTry to /start again", "Сорі, щось пішло не так (*варунек*)\nЗпробуй /start", "Jakiś błąd o.O\n Spróbuj /start" };
+        public static List<string> ErrorMessage = new List<string>() { "Some error o.O\nTry to /start again", "Сорі, щось пішло не так (*варунек*)\nСпробуй /start", "Jakiś błąd o.O\n Spróbuj /start" };
         public static List<string> Offline = new List<string>() { "Bot was offline, try again now", "Бот був оффлайн, спробуй зараз", "Bot był offline, spróbuj teraz" };
         public static List<string> NoDataForMonth = new List<string>() { "No schedules for that month", "Нема розкладу на цей місяць ", "Nie ma harmonogramu na ten miesiąc, wybierz inny" };
+        public static List<string> NoDataForDate = new List<string>() { "No schedules for that day", "Нема розкладу на цей день ", "Nie ma harmonogramu na ten Dzień" };
         public static List<string> PickAnother = new List<string>() { ", pick another.", ", обери інший.", ", wybierz inny" };
         public static List<string> FirstBus = new List<string>() { "First bus leaves at:", "Перший бус їде:", "Pierwszy bus jedzie:" };
         public static List<string> ThenLikeAlways = new List<string>() { "Then as always:", "Потім як звикле:", "Potem jak zwykle:" };
