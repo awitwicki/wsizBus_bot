@@ -229,7 +229,6 @@ namespace wsizbusbot.Controllers
         public async void Weather(MessageEventArgs messageEventArgs)
         {
             var weather = await WeatherHelper.GetWeather(User.GetLanguage);
-            weather += "\n@wsizBus_bot";
 
             var inlineKeyboard = TemplateModelsBuilder.RefreshWeather(User.GetLanguage);
 

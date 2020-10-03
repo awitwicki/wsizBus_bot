@@ -255,8 +255,6 @@ namespace wsizbusbot.Controllers
             bool isEdit = args.ContainsKey(Commands.IsEdit);
 
             var weather = await WeatherHelper.GetWeather(User.GetLanguage);
-            weather += $"\n`{DateTime.UtcNow.AddHours(2)}`";
-            weather += "\n@wsizBus_bot";
 
             var inlineKeyboard = TemplateModelsBuilder.RefreshWeather(User.GetLanguage);
 

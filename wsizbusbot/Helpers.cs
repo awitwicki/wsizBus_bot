@@ -322,6 +322,7 @@ namespace wsizbusbot
             catch
             {}
 
+            result += "\n@wsizBus_bot";
             return result;
         }
     }

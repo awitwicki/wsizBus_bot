@@ -41,8 +41,10 @@ namespace wsizbusbot
 
         public static List<string> StartString = new List<string>() { "Hi! I know where and when will be wsizbus, select direction\n\n", "Привіт, Я знаю де і коли буде всізобус, щоб дізнатися - обери куди ти хочеш доїхати\n\n", "Cześć, wiem kiedy i gdzie będzie jechał wsizbus, najpierw wybierz kierunek\n\n" };
         public static List<string> Today = new List<string>() { "Today", "Сьогодні", "Dziś" };
+        public static List<string> TodayTo = new List<string>() { "Today to", "Сьогодні до", "Dziś do" };
         public static List<string> ReturnBack = new List<string>() { "Back", "Назад", "Powrót" };
         public static List<string> Tomorrow = new List<string>() { "Tomorrow", "Завтра", "Jutro" };
+        public static List<string> TomorrowTo = new List<string>() { "Tomorrow to", "Завтра до", "Jutro do" };
         public static List<string> PickDate = new List<string>() { "Pick a date", "Обери дату", "Wybierz datę" };
         public static List<string> PickMonth = new List<string>() { "Pick a month", "Обери місяць", "Wybierz miesiąc" };
         public static List<string> PickBusStation = new List<string>() { "Pick the bus station", "Обери пшистанек", "Wybierz Przystanek" };

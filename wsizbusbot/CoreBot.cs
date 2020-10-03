@@ -36,6 +36,7 @@ namespace wsizbusbot
 
             Bot.OnMessage += BotOnMessageReceived;
             Bot.OnCallbackQuery += BotOnCallbackQueryReceived;
+            Bot.OnInlineQuery += BotOnInlineQueryReceived;
             Bot.OnReceiveError += BotOnReceiveError;
 
             Bot.StartReceiving(Array.Empty<UpdateType>());
@@ -134,7 +135,20 @@ namespace wsizbusbot
             //string methodName = ArgParser.ParseCallbackData(callbackQuery.Data).GetValueOrDefault(Commands.MethodName);
             //Console.WriteLine($"{methodName} - {callbackQuery.Data}");
         }
+        private async void BotOnInlineQueryReceived(object sender, InlineQueryEventArgs inlineQueryEventArgs)
+        {
+            var userfrom = inlineQueryEventArgs.InlineQuery.From;
+            var user = ApplicationData.GetUser(userfrom.Id);
 
+            InfluxDBLiteClient.Query("bots,botname=wsizbusbot,actiontype=inline action=true");
+
+            var handler = new InlineQueryController();
+            handler.Bot = Bot;
+            handler.User = user;
+            handler.InlineQueryEventArgs = inlineQueryEventArgs;
+
+            handler.Execute();
+        }
         private async void Invoker(MessageEventArgs messageEventArgs = null, CallbackQueryEventArgs callbackQueryEventArgs = null)
         {
             //Get message data
