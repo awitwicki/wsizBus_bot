@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using Telegram.Bot;
 using Telegram.Bot.Args;
+using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -109,6 +110,9 @@ namespace wsizbusbot.Controllers
             }
             catch (Exception ex)
             {
+                if (ex is MessageIsNotModifiedException)
+                    return;
+
                 Log.Error(ex, "EditMessageTextAsync error");
             }
         }
