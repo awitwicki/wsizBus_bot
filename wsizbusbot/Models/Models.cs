@@ -17,6 +17,8 @@ namespace wsizbusbot
         {
             get { return (int)Language; }
         }
+
+        public bool IsBanned() => UserAccess == UserAccess.Ban;
     }
     public class Stats
     {

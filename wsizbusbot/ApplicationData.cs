@@ -9,7 +9,7 @@ namespace wsizbusbot
 {
     public static class ApplicationData
     {
-        public static string BotVersion = "2.8 Beta 20092020";
+        public static string BotVersion = "2.13 Beta 03102020";
 
         public static FileStorageManager<CoreBotUser> Users { get; set; } = new FileStorageManager<CoreBotUser>(Config.UsersFilePath);
         public static FileStorageManager<Stats> Stats { get; set; } = new FileStorageManager<Stats>(Config.StatsFilePath);

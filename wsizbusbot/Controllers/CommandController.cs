@@ -94,8 +94,8 @@ namespace wsizbusbot.Controllers
         [Role(UserAccess.Admin)]
         public  void Ban_list(MessageEventArgs messageEventArgs)
         {
-            string users = ApplicationData.Users.Set().Count(u => u.UserAccess == UserAccess.Ban) == 0 ? "Ban list is empty" : "";
-            foreach (var user_id in ApplicationData.Users.Set().Where(u => u.UserAccess == UserAccess.Ban).ToList())
+            string users = ApplicationData.Users.Set().Any(u => u.IsBanned()) ? "":"Ban list is empty";
+            foreach (var user_id in ApplicationData.Users.Set().Where(u => u.IsBanned()).ToList())
             {
                 users += $"`{user_id.Id}` {user_id.Name} @{(user_id.UserName != null ? user_id.UserName : "hidden")}\n";
             }
@@ -122,7 +122,7 @@ namespace wsizbusbot.Controllers
                         if (ApplicationData.Users.Set().Select(u => u.Id).Contains((long)id))
                         {
                             var usr_ = ApplicationData.Users.Set().First(u => u.Id == id);
-                            usr_.UserAccess = usr_.UserAccess == UserAccess.User ? UserAccess.Ban : UserAccess.User;
+                            usr_.UserAccess = usr_.IsBanned() ? UserAccess.User : UserAccess.Ban;
 
                             //Save to file
                             ApplicationData.SaveUsers();

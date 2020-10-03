@@ -253,7 +253,7 @@ namespace wsizbusbot
             }
 
             //Authorize User (if user banned - ignore)
-            if (user.UserAccess == UserAccess.Ban)
+            if (user.IsBanned())
             {
                 //SendMessage(chatId, "Banned");
                 DeleteMessageAsync(chatId, messageId);
