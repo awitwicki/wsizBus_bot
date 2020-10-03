@@ -20,6 +20,7 @@ namespace wsizbusbot
 
         //monitoring influxDB
         public static readonly bool UseInfluxDB = false;
+        public static string InfluxDBDConnectionString = "http://[your db ip]:8086";
         public static string InfluxDBDbName = "mydb";
         public static string InfluxDBUserName = "admin";
         public static string InfluxDBPassword = "admin";

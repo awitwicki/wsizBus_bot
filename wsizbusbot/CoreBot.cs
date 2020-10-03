@@ -35,10 +35,8 @@ namespace wsizbusbot
             var me = Bot.GetMeAsync().Result;
 
             Bot.OnMessage += BotOnMessageReceived;
-            Bot.OnMessage += OnMessage;
             Bot.OnCallbackQuery += BotOnCallbackQueryReceived;
             Bot.OnReceiveError += BotOnReceiveError;
-
 
             Bot.StartReceiving(Array.Empty<UpdateType>());
             Log.Information($"Start listening for @{me.Username}");
@@ -93,10 +91,6 @@ namespace wsizbusbot
         }
 
         //Handlers
-        private async void OnMessage(object sender, MessageEventArgs messageEventArgs)
-        {
-            "INSERT wsizbusbot,t1=calls call=1".RunInfluxDB();
-        }
         private async void BotOnMessageReceived(object sender, MessageEventArgs messageEventArgs)
         {
             var message = messageEventArgs.Message;
@@ -108,13 +102,17 @@ namespace wsizbusbot
                 return;
 
             if (message.Text != null && message.Text[0] == '/') //handle command
+            {
+                InfluxDBLiteClient.Query("bots,botname=wsizbusbot,actiontype=command action=true");
                 Invoker(messageEventArgs);
-            /*else
-                HandleMessage(messageEventArgs); //handle simple message */
+            }
+            else
+                InfluxDBLiteClient.Query("bots,botname=wsizbusbot,actiontype=message action=true");
+                //HandleMessage(messageEventArgs); //handle simple message */
         }
         private async void BotOnCallbackQueryReceived(object sender, CallbackQueryEventArgs callbackQueryEventArgs)
         {
-            "INSERT wsizbusbot,t2=callbacks callback=1".RunInfluxDB();
+            InfluxDBLiteClient.Query("bots,botname=wsizbusbot,actiontype=callback action=true");
 
             var callbackQuery = callbackQueryEventArgs.CallbackQuery;
 
@@ -189,6 +187,7 @@ namespace wsizbusbot
             else
             {
                 //Cant method did not exists
+                InfluxDBLiteClient.Query("bots,botname=wsizbusbot,actiontype=backenderror action=true");
                 SendMessageAsync(Config.AdminId, callbackQueryEventArgs != null ? $"Cant find method for: {callbackQueryEventArgs.CallbackQuery.Data}" : $"Cant find method for: {messageEventArgs.Message.Text}");
                 SendMessageAsync(chatId, $"Command `{methodName}` not exists", ParseMode.Markdown);
             }
@@ -273,7 +272,7 @@ namespace wsizbusbot
         
         private void BotOnReceiveError(object sender, ReceiveErrorEventArgs receiveErrorEventArgs)
         {
-            "INSERT wsizbusbot,t2=errors error=1".RunInfluxDB();
+            InfluxDBLiteClient.Query("bots,botname=wsizbusbot,actiontype=error action=true");
 
             //ToDo logging to file
             Log.Error("Received error: {0} — {1}", receiveErrorEventArgs.ApiRequestException.ErrorCode, receiveErrorEventArgs.ApiRequestException.Message);

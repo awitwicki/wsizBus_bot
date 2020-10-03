@@ -326,12 +326,31 @@ namespace wsizbusbot
         }
     }
 
-    public static class ShellHelper
+    public static class InfluxDBLiteClient
     {
-        public static void RunInfluxDB(this string cmd)
+        public static void Query(string query)
         {
             if (Config.UseInfluxDB)
-                Process.Start("/usr/bin/influx", $"-username {Config.InfluxDBUserName} -password \"{Config.InfluxDBPassword}\" -database \"{Config.InfluxDBDbName}\" -execute \"{cmd}\"");
+            {
+                new Task(() =>
+                {
+                    try
+                    {
+                        using (var client = new System.Net.Http.HttpClient())
+                        {
+                            client.BaseAddress = new Uri(Config.InfluxDBDConnectionString);
+                            client.DefaultRequestHeaders.Add("Authorization", $"Token {Config.InfluxDBUserName}:{Config.InfluxDBPassword}");
+                            client.Timeout = TimeSpan.FromSeconds(1);
+                            var content = new System.Net.Http.StringContent(query, Encoding.UTF8, "application/Text");
+                            var res = client.PostAsync($"/write?db={Config.InfluxDBDbName}", content).Result;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                    }
+                }).Start();
+            }
         }
     }
 }
