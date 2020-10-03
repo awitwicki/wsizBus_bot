@@ -24,5 +24,7 @@ namespace wsizbusbot
         public static string InfluxDBDbName = "mydb";
         public static string InfluxDBUserName = "admin";
         public static string InfluxDBPassword = "admin";
+
+        public static bool AllowChats = false;
     }
 }

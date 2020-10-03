@@ -95,6 +95,9 @@ namespace wsizbusbot
         {
             var message = messageEventArgs.Message;
 
+            if (!Config.AllowChats && message.Chat.Type != ChatType.Private)
+                return;
+
             await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
 
             //Handle stats, access, filters
@@ -115,6 +118,9 @@ namespace wsizbusbot
             InfluxDBLiteClient.Query("bots,botname=wsizbusbot,actiontype=callback action=true");
 
             var callbackQuery = callbackQueryEventArgs.CallbackQuery;
+
+            if (!Config.AllowChats && callbackQuery.Message.Chat.Type != ChatType.Private)
+                return;
 
             //Handle stats, access, filters
             if (!CheckMessage(callbackQueryEventArgs: callbackQueryEventArgs))
