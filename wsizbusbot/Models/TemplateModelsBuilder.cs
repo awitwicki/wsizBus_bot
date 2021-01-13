@@ -88,7 +88,7 @@ namespace wsizbusbot.Models
 
             foreach (var u in topUsers)
             {
-                users += $"{Local.LangIcon[u.GetLanguage]} {u.Name} `{u.Id}` @{(u.UserName != null ? u.UserName : "hidden")}  {u.ActiveAt.ToString("dd/MM/yy")}\n";
+                users += $"{Local.LangIcon[u.GetLanguage]} {u.Name} `{u.Id}` @{(u.UserName != null ? u.UserName : "hidden")}  {u.ActiveAt.ToString("dd/MM/yy HH:mm")}\n";
             }
 
             return users;
