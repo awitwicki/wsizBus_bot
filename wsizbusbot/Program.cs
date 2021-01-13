@@ -20,14 +20,14 @@ using Serilog;
 namespace wsizbusbot
 {
   class Program
-    {
+  {
         static void Main(string[] args)
         {
             Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Information()
             .WriteTo.Console()
             .WriteTo.File(Config.LogsFileName,
-                rollingInterval: RollingInterval.Day,
+                rollingInterval: RollingInterval.Month,
                 rollOnFileSizeLimit: true,
                 shared: true)
             .CreateLogger();
@@ -36,12 +36,20 @@ namespace wsizbusbot
 
             ApplicationData.StopMode = !ScheduleHelper.ParseFiles().Result;
 
-            var corebot = new CoreBot(Config.TelegramAccessToken);
+            try
+            {
+                var corebot = new CoreBot(Config.TelegramAccessToken);
 
-            if (ApplicationData.StopMode)
-                corebot.SendMessageAsync(Config.AdminId, "Error with file parsing", ParseMode.Markdown);
+                if (ApplicationData.StopMode)
+                    corebot.SendMessageAsync(Config.AdminId, "Error with file parsing", ParseMode.Markdown);
 
-            corebot.WaitSync();
+                corebot.WaitSync();
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal(ex.ToString());
+                return;
+            }
         }
-    }
+  }
 }

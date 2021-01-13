@@ -1,7 +1,9 @@
-﻿using Serilog;
+﻿using Newtonsoft.Json;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -114,6 +116,12 @@ namespace wsizbusbot.Controllers
                     return;
 
                 Log.Error(ex, "EditMessageTextAsync error");
+
+                if (replyMarkup != null)
+                {
+                    var data = JsonConvert.SerializeObject(replyMarkup);
+                    Log.Error(ex, $"EditMessageTextAsync error data: {data}");
+                }
             }
         }
         public async void SendLocationAsync(ChatId chatId, float latitude, float longitude, int livePeriod = 0, bool disableNotification = false, int replyToMessageId = 0, IReplyMarkup replyMarkup = null, CancellationToken cancellationToken = default)

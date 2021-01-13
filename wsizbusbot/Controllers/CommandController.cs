@@ -146,6 +146,7 @@ namespace wsizbusbot.Controllers
         }
         
         [Role(UserAccess.Admin)]
+        [MessageReaction(ChatAction.Typing)]
         public void Send_all(MessageEventArgs messageEventArgs)
         {
             var message = messageEventArgs.Message;
